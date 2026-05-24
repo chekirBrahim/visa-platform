@@ -24,6 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         stepHistory: { include: { step: true }, orderBy: { step: { stepNumber: "asc" } } },
         messages: { orderBy: { createdAt: "asc" }, take: 50 },
         adminComments: { orderBy: { createdAt: "desc" } },
+        tempAccess: { select: { accessToken: true } },
       },
     })
 
