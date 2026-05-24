@@ -1,0 +1,628 @@
+// ============================================================
+// PRISMA SCHEMA — Visa Platform Tunisia
+// Database: PostgreSQL (Neon Serverless)
+// ============================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum AccountType {
+  FULL       // Compte complet avec mot de passe
+  SOCIAL     // Connexion via OAuth (Google etc.)
+  TEMP       // Accès temporaire converti en compte
+}
+
+enum IdentifierType {
+  EMAIL
+  PHONE
+}
+
+enum OtpPurpose {
+  VERIFY_EMAIL
+  VERIFY_PHONE
+  LOGIN
+  RESET_PASSWORD
+}
+
+enum VisaCategory {
+  TOURISME
+  AFFAIRES
+  ETUDES
+  FAMILLE
+  TRANSIT
+  TRAVAIL
+  EVISA
+}
+
+enum ProcessingCenter {
+  TLS_CONTACT
+  VFS_GLOBAL
+  EMBASSY_DIRECT
+  ONLINE
+}
+
+enum FieldType {
+  TEXT
+  EMAIL
+  PHONE
+  NUMBER
+  DATE
+  SELECT
+  MULTISELECT
+  RADIO
+  CHECKBOX
+  TEXTAREA
+  FILE
+  COUNTRY
+  ADDRESS
+}
+
+enum ApplicationStatus {
+  DRAFT              // Formulaire en cours de remplissage
+  SUBMITTED          // Soumis, en attente de vérification
+  DOCUMENTS_PENDING  // Documents manquants
+  UNDER_REVIEW       // En cours d'examen par l'agence
+  SENT_TO_EMBASSY    // Dossier envoyé à l'ambassade/TLS/VFS
+  AT_EMBASSY         // En traitement à l'ambassade
+  APPROVED           // Visa accordé
+  REJECTED           // Visa refusé
+  CANCELLED          // Annulé par le client
+  ADDITIONAL_INFO    // Informations supplémentaires requises
+}
+
+enum ApplicationPriority {
+  NORMAL
+  URGENT
+  PREMIUM
+}
+
+enum StepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum DocumentReviewStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum MessageSenderType {
+  CLIENT
+  AGENT
+  SYSTEM
+  AI
+}
+
+enum MessageType {
+  TEXT
+  DOCUMENT
+  STATUS_UPDATE
+  SYSTEM_NOTIFICATION
+}
+
+enum NotificationType {
+  STATUS_CHANGE
+  DOCUMENT_REQUEST
+  MESSAGE
+  APPOINTMENT
+  DEADLINE
+  GENERAL
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  AGENT
+  VIEWER
+  FORM_EDITOR
+}
+
+enum AuditActorType {
+  USER
+  ADMIN
+  SYSTEM
+}
+
+// ============================================================
+// MODULE 1 — AUTH & UTILISATEURS
+// ============================================================
+
+model User {
+  id             String      @id @default(uuid())
+  email          String?     @unique
+  phone          String?     @unique
+  fullName       String
+  passwordHash   String?
+  accountType    AccountType @default(FULL)
+  isVerified     Boolean     @default(false)
+  isActive       Boolean     @default(true)
+
+  // Profil passeport
+  nationality    String?
+  dateOfBirth    DateTime?
+  passportNumber String?
+  passportExpiry DateTime?
+
+  // Timestamps
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  lastLoginAt    DateTime?
+
+  // Relations
+  sessions       Session[]
+  applications   Application[]
+  messages       Message[]
+  notifications  Notification[]
+  admin          Admin?
+  aiConversations AiConversation[]
+  tempAccesses   TempAccess[]    @relation("ConvertedFrom")
+
+  @@index([email])
+  @@index([phone])
+  @@map("users")
+}
+
+model TempAccess {
+  id              String         @id @default(uuid())
+  identifier      String         @unique // email ou téléphone
+  identifierType  IdentifierType
+  otpCode         String?
+  otpExpiresAt    DateTime?
+  accessToken     String         @unique @default(uuid())
+  tokenExpiresAt  DateTime
+  isActive        Boolean        @default(true)
+
+  // Conversion vers compte complet
+  convertedUserId String?
+  convertedUser   User?          @relation("ConvertedFrom", fields: [convertedUserId], references: [id])
+  convertedAt     DateTime?
+
+  createdAt       DateTime       @default(now())
+
+  // Relations
+  applications    Application[]
+  notifications   Notification[]
+
+  @@index([identifier])
+  @@index([accessToken])
+  @@map("temp_accesses")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @unique
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  revoked      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@map("sessions")
+}
+
+model OtpVerification {
+  id          String         @id @default(uuid())
+  target      String         // email ou téléphone
+  targetType  IdentifierType
+  codeHash    String
+  purpose     OtpPurpose
+  attempts    Int            @default(0)
+  maxAttempts Int            @default(5)
+  expiresAt   DateTime
+  verifiedAt  DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@index([target])
+  @@map("otp_verifications")
+}
+
+// ============================================================
+// MODULE 2 — PAYS & FORMULAIRES DYNAMIQUES
+// ============================================================
+
+model Country {
+  id               String           @id @default(uuid())
+  code             String           @unique // FR, IT, DE, ES, US, CA, EVISA
+  nameFr           String
+  nameAr           String?
+  nameEn           String?
+  flagEmoji        String?
+  embassyUrl       String?
+  tlsUrl           String?
+  vfsUrl           String?
+  processingCenter ProcessingCenter @default(TLS_CONTACT)
+  isActive         Boolean          @default(true)
+  sortOrder        Int              @default(0)
+  description      String?          @db.Text
+  processingInfoFr String?          @db.Text // Infos TLS/VFS pour ce pays
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relations
+  visaTypes        VisaType[]
+  aiConversations  AiConversation[]
+
+  @@map("countries")
+}
+
+model VisaType {
+  id                 String          @id @default(uuid())
+  countryId          String
+  country            Country         @relation(fields: [countryId], references: [id])
+  name               String
+  nameFr             String
+  nameAr             String?
+  category           VisaCategory
+  durationDays       Int?            // Durée de validité en jours
+  feeAgency          Decimal         @db.Decimal(10, 2) // Frais agence (TND)
+  feeEmbassy         Decimal         @db.Decimal(10, 2) // Frais consulaires
+  feeCurrency        String          @default("TND")
+  processingDaysMin  Int             @default(5)
+  processingDaysMax  Int             @default(15)
+  requiresAppointment Boolean        @default(false)
+  isActive           Boolean         @default(true)
+  description        String?         @db.Text
+  refusalTips        String?         @db.Text // Conseils pour éviter le refus
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  // Relations
+  formTemplates      FormTemplate[]
+  documentRequirements DocumentRequirement[]
+  processingSteps    ProcessingStep[]
+  applications       Application[]
+
+  @@index([countryId])
+  @@map("visa_types")
+}
+
+model FormTemplate {
+  id          String      @id @default(uuid())
+  visaTypeId  String
+  visaType    VisaType    @relation(fields: [visaTypeId], references: [id])
+  version     Int         @default(1)
+  isPublished Boolean     @default(false)
+  publishedAt DateTime?
+  createdById String?     // admin id
+  sections    Json        // Structure des sections en JSON
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  fields      FormField[]
+  applications Application[]
+
+  @@index([visaTypeId])
+  @@map("form_templates")
+}
+
+model FormField {
+  id             String       @id @default(uuid())
+  templateId     String
+  template       FormTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  sectionKey     String       // Clé de la section (ex: "personal_info")
+  fieldKey       String       // Clé du champ (ex: "full_name")
+  fieldType      FieldType
+  labelFr        String
+  labelAr        String?
+  labelEn        String?
+  placeholder    String?
+  helpText       String?
+  isRequired     Boolean      @default(false)
+  isVisible      Boolean      @default(true)
+  options        Json?        // Pour SELECT, RADIO, CHECKBOX
+  validationRules Json?       // Règles de validation
+  dependsOn      String?      // Champ conditionnel
+  dependsValue   String?      // Valeur déclenchante
+  sortOrder      Int          @default(0)
+
+  @@index([templateId])
+  @@map("form_fields")
+}
+
+// ============================================================
+// MODULE 3 — DOSSIERS & SUIVI
+// ============================================================
+
+model Application {
+  id             String              @id @default(uuid())
+  referenceCode  String              @unique // EX: VIS-FR-2025-00142
+
+  // Demandeur (l'un ou l'autre)
+  userId         String?
+  user           User?               @relation(fields: [userId], references: [id])
+  tempAccessId   String?
+  tempAccess     TempAccess?         @relation(fields: [tempAccessId], references: [id])
+
+  // Visa demandé
+  visaTypeId     String
+  visaType       VisaType            @relation(fields: [visaTypeId], references: [id])
+  formTemplateId String
+  formTemplate   FormTemplate        @relation(fields: [formTemplateId], references: [id])
+
+  // Données du formulaire (réponses)
+  formData       Json                @default("{}")
+
+  // Statut & Priorité
+  status         ApplicationStatus   @default(DRAFT)
+  priority       ApplicationPriority @default(NORMAL)
+
+  // Assignation
+  assignedAgentId String?
+
+  // Dates importantes
+  travelDate       DateTime?
+  appointmentDate  DateTime?
+  submittedAt      DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  // Informations de paiement
+  isPaid           Boolean            @default(false)
+  paidAt           DateTime?
+  paymentReference String?
+
+  // Notes internes
+  internalNote     String?            @db.Text
+
+  // Relations
+  documents        Document[]
+  stepHistory      ApplicationStep[]
+  messages         Message[]
+  notifications    Notification[]
+  adminComments    AdminComment[]
+  aiConversations  AiConversation[]
+
+  @@index([status])
+  @@index([userId])
+  @@index([referenceCode])
+  @@index([submittedAt])
+  @@map("applications")
+}
+
+model ProcessingStep {
+  id                String    @id @default(uuid())
+  visaTypeId        String
+  visaType          VisaType  @relation(fields: [visaTypeId], references: [id])
+  stepNumber        Int
+  nameFr            String
+  nameAr            String?
+  descriptionFr     String?   @db.Text
+  isClientVisible   Boolean   @default(true) // Visible par le client dans le suivi
+  estimatedDays     Int       @default(1)
+  iconName          String?   // Nom de l'icône Lucide
+  createdAt         DateTime  @default(now())
+
+  // Relations
+  applicationSteps  ApplicationStep[]
+
+  @@unique([visaTypeId, stepNumber])
+  @@map("processing_steps")
+}
+
+model ApplicationStep {
+  id            String         @id @default(uuid())
+  applicationId String
+  application   Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  stepId        String
+  step          ProcessingStep @relation(fields: [stepId], references: [id])
+  status        StepStatus     @default(PENDING)
+  startedAt     DateTime?
+  completedAt   DateTime?
+  note          String?        @db.Text
+  createdAt     DateTime       @default(now())
+
+  @@unique([applicationId, stepId])
+  @@index([applicationId])
+  @@map("application_steps")
+}
+
+// ============================================================
+// MODULE 4 — DOCUMENTS
+// ============================================================
+
+model DocumentRequirement {
+  id              String    @id @default(uuid())
+  visaTypeId      String
+  visaType        VisaType  @relation(fields: [visaTypeId], references: [id])
+  docKey          String    // Clé unique (ex: "passport_copy")
+  nameFr          String
+  nameAr          String?
+  descriptionFr   String?   @db.Text
+  isMandatory     Boolean   @default(true)
+  acceptedFormats String[]  @default(["pdf", "jpg", "jpeg", "png"])
+  maxSizeMb       Int       @default(5)
+  sampleUrl       String?   // Exemple de document
+  helpVideoUrl    String?
+  sortOrder       Int       @default(0)
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  documents       Document[]
+
+  @@unique([visaTypeId, docKey])
+  @@map("document_requirements")
+}
+
+model Document {
+  id             String               @id @default(uuid())
+  applicationId  String
+  application    Application          @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  requirementId  String?
+  requirement    DocumentRequirement? @relation(fields: [requirementId], references: [id])
+
+  originalName   String
+  storageKey     String               @unique // Clé dans le stockage (S3/Vercel Blob)
+  storageUrl     String               // URL signée ou publique
+  mimeType       String
+  sizeBytes      BigInt
+  reviewStatus   DocumentReviewStatus @default(PENDING)
+  rejectionReason String?             @db.Text
+  reviewedAt     DateTime?
+  reviewedById   String?              // Admin id
+
+  uploadedAt     DateTime             @default(now())
+
+  @@index([applicationId])
+  @@map("documents")
+}
+
+// ============================================================
+// MODULE 5 — COMMUNICATION & NOTIFICATIONS
+// ============================================================
+
+model Message {
+  id            String            @id @default(uuid())
+  applicationId String
+  application   Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  senderType    MessageSenderType
+  senderUserId  String?
+  senderUser    User?             @relation(fields: [senderUserId], references: [id])
+
+  content       String            @db.Text
+  messageType   MessageType       @default(TEXT)
+  attachmentUrl String?
+  attachmentName String?
+
+  readAt        DateTime?
+  createdAt     DateTime          @default(now())
+
+  @@index([applicationId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+model Notification {
+  id            String              @id @default(uuid())
+
+  // Destinataire (l'un ou l'autre)
+  userId        String?
+  user          User?               @relation(fields: [userId], references: [id])
+  tempAccessId  String?
+  tempAccess    TempAccess?         @relation(fields: [tempAccessId], references: [id])
+
+  applicationId String?
+  application   Application?        @relation(fields: [applicationId], references: [id])
+
+  type          NotificationType
+  channel       NotificationChannel @default(IN_APP)
+  title         String
+  body          String              @db.Text
+  actionUrl     String?
+
+  sentAt        DateTime?
+  readAt        DateTime?
+  failedAt      DateTime?
+  failureReason String?
+
+  createdAt     DateTime            @default(now())
+
+  @@index([userId])
+  @@index([applicationId])
+  @@map("notifications")
+}
+
+model AdminComment {
+  id            String      @id @default(uuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  adminId       String
+  content       String      @db.Text
+  isPinned      Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([applicationId])
+  @@map("admin_comments")
+}
+
+// ============================================================
+// MODULE 6 — ADMIN & AUDIT
+// ============================================================
+
+model Admin {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id])
+  role           AdminRole @default(AGENT)
+  permissions    Json      @default("{}")
+  canManageForms Boolean   @default(false)
+  canManageCountries Boolean @default(false)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  lastActiveAt   DateTime?
+
+  @@map("admins")
+}
+
+model AuditLog {
+  id         String         @id @default(uuid())
+  actorId    String
+  actorType  AuditActorType
+  action     String         // Ex: "APPLICATION_STATUS_CHANGED"
+  entityType String         // Ex: "Application"
+  entityId   String
+  diff       Json?          // Avant/Après
+  ipAddress  String?
+  createdAt  DateTime       @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================================
+// MODULE 7 — INTELLIGENCE ARTIFICIELLE
+// ============================================================
+
+model AiConversation {
+  id              String      @id @default(uuid())
+  sessionId       String      @unique @default(uuid())
+
+  // Contexte optionnel
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+  applicationId   String?
+  application     Application? @relation(fields: [applicationId], references: [id])
+  contextCountryId String?
+  contextCountry  Country?    @relation(fields: [contextCountryId], references: [id])
+
+  // Historique des messages (format OpenAI-compatible)
+  messages        Json        @default("[]")
+  tokensUsed      Int         @default(0)
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([sessionId])
+  @@index([userId])
+  @@map("ai_conversations")
+}
