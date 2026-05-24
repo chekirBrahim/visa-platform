@@ -1,196 +1,151 @@
 // ============================================================
 // SEED — Données initiales de la plateforme visa
-// Commande : npm run db:seed
 // ============================================================
 
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+import { PrismaClient } from "@prisma/client"
+import bcrypt from "bcryptjs"
 
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Seeding database...')
+  console.log("🌱 Seeding database...")
 
-  // ─── 1. Pays ──────────────────────────────────────────────
-  const countries = await Promise.all([
-    prisma.country.upsert({
-      where: { code: 'FR' },
-      update: {},
-      create: {
-        code: 'FR', nameFr: 'France', nameAr: 'فرنسا', nameEn: 'France',
-        flagEmoji: '🇫🇷', processingCenter: 'TLS_CONTACT',
-        tlsUrl: 'https://fr.tlscontact.com/visa/tn/TUN2FR',
-        embassyUrl: 'https://tn.ambafrance.org',
-        isActive: true, sortOrder: 1,
-        processingInfoFr: 'Les rendez-vous se prennent sur TLSContact. Prévoir 15 jours minimum.',
-      },
-    }),
-    prisma.country.upsert({
-      where: { code: 'IT' },
-      update: {},
-      create: {
-        code: 'IT', nameFr: 'Italie', nameAr: 'إيطاليا', nameEn: 'Italy',
-        flagEmoji: '🇮🇹', processingCenter: 'TLS_CONTACT',
-        tlsUrl: 'https://it.tlscontact.com/visa/tn/TUN2IT',
-        isActive: true, sortOrder: 2,
-      },
-    }),
-    prisma.country.upsert({
-      where: { code: 'DE' },
-      update: {},
-      create: {
-        code: 'DE', nameFr: 'Allemagne', nameAr: 'ألمانيا', nameEn: 'Germany',
-        flagEmoji: '🇩🇪', processingCenter: 'TLS_CONTACT',
-        tlsUrl: 'https://de.tlscontact.com/visa/tn/TUN2DE',
-        isActive: true, sortOrder: 3,
-      },
-    }),
-    prisma.country.upsert({
-      where: { code: 'ES' },
-      update: {},
-      create: {
-        code: 'ES', nameFr: 'Espagne', nameAr: 'إسبانيا', nameEn: 'Spain',
-        flagEmoji: '🇪🇸', processingCenter: 'VFS_GLOBAL',
-        isActive: true, sortOrder: 4,
-      },
-    }),
-    prisma.country.upsert({
-      where: { code: 'US' },
-      update: {},
-      create: {
-        code: 'US', nameFr: 'États-Unis', nameAr: 'الولايات المتحدة', nameEn: 'United States',
-        flagEmoji: '🇺🇸', processingCenter: 'EMBASSY_DIRECT',
-        embassyUrl: 'https://tn.usembassy.gov/visas-fr/',
-        isActive: true, sortOrder: 5,
-        processingInfoFr: 'Entretien consulaire obligatoire. Délai : 4 à 8 semaines.',
-      },
-    }),
-    prisma.country.upsert({
-      where: { code: 'CA' },
-      update: {},
-      create: {
-        code: 'CA', nameFr: 'Canada', nameAr: 'كندا', nameEn: 'Canada',
-        flagEmoji: '🇨🇦', processingCenter: 'ONLINE',
-        embassyUrl: 'https://www.canada.ca/fr/immigration-refugies-citoyennete.html',
-        isActive: true, sortOrder: 6,
-        processingInfoFr: 'Demande en ligne via IRCC. Délai : 2 à 4 semaines.',
-      },
-    }),
-    prisma.country.upsert({
-      where: { code: 'EVISA' },
-      update: {},
-      create: {
-        code: 'EVISA', nameFr: 'eVisa', nameAr: 'تأشيرة إلكترونية', nameEn: 'eVisa',
-        flagEmoji: '🌐', processingCenter: 'ONLINE',
-        isActive: true, sortOrder: 7,
-        description: 'Visas électroniques pour plusieurs destinations (Turquie, Égypte, Sri Lanka...)',
-      },
-    }),
-  ])
-
-  console.log(`✅ ${countries.length} pays créés`)
-
-  // ─── 2. Types de visas France ─────────────────────────────
-  const franceTourisme = await prisma.visaType.upsert({
-    where: { id: 'vt-fr-tourisme' },
-    update: {},
-    create: {
-      id: 'vt-fr-tourisme',
-      countryId: countries[0].id,
-      name: 'Visa Schengen Tourisme',
-      nameFr: 'Visa Schengen Tourisme',
-      category: 'TOURISME',
-      durationDays: 90,
-      feeAgency: 150,
-      feeEmbassy: 90,
-      processingDaysMin: 10,
-      processingDaysMax: 21,
-      requiresAppointment: true,
-      isActive: true,
-      description: 'Visa court séjour pour tourisme en France et espace Schengen',
-      refusalTips: 'Fournir des justificatifs de revenus stables, billets retour, réservations hôtel',
-    },
-  })
-
-  // ─── 3. Étapes de traitement France Tourisme ──────────────
-  const steps = [
-    { stepNumber: 1, nameFr: 'Réception du dossier', descriptionFr: 'Votre dossier a été reçu et enregistré', isClientVisible: true, estimatedDays: 1, iconName: 'FileCheck' },
-    { stepNumber: 2, nameFr: 'Vérification des documents', descriptionFr: 'Vérification de la complétude et conformité des documents', isClientVisible: true, estimatedDays: 2, iconName: 'Search' },
-    { stepNumber: 3, nameFr: 'Prise de rendez-vous TLS', descriptionFr: 'Réservation de votre rendez-vous au centre TLSContact', isClientVisible: true, estimatedDays: 3, iconName: 'Calendar' },
-    { stepNumber: 4, nameFr: 'Soumission à l\'ambassade', descriptionFr: 'Dossier transmis à l\'ambassade de France', isClientVisible: true, estimatedDays: 5, iconName: 'Send' },
-    { stepNumber: 5, nameFr: 'Traitement consulaire', descriptionFr: 'Votre dossier est en cours d\'examen par le consulat', isClientVisible: true, estimatedDays: 10, iconName: 'Clock' },
-    { stepNumber: 6, nameFr: 'Décision finale', descriptionFr: 'Le consulat a rendu sa décision', isClientVisible: true, estimatedDays: 1, iconName: 'CheckCircle' },
-  ]
-
-  for (const step of steps) {
-    await prisma.processingStep.upsert({
-      where: { visaTypeId_stepNumber: { visaTypeId: franceTourisme.id, stepNumber: step.stepNumber } },
-      update: {},
-      create: { visaTypeId: franceTourisme.id, ...step },
-    })
-  }
-
-  console.log(`✅ Étapes de traitement créées pour France Tourisme`)
-
-  // ─── 4. Documents requis France Tourisme ──────────────────
-  const docRequirements = [
-    { docKey: 'passport', nameFr: 'Passeport valide', isMandatory: true, acceptedFormats: ['pdf', 'jpg', 'jpeg'], maxSizeMb: 5, sortOrder: 1 },
-    { docKey: 'photo', nameFr: 'Photo d\'identité biométrique', isMandatory: true, acceptedFormats: ['jpg', 'jpeg', 'png'], maxSizeMb: 2, sortOrder: 2 },
-    { docKey: 'bank_statement', nameFr: 'Relevé bancaire (3 derniers mois)', isMandatory: true, acceptedFormats: ['pdf'], maxSizeMb: 10, sortOrder: 3 },
-    { docKey: 'work_certificate', nameFr: 'Attestation de travail', isMandatory: true, acceptedFormats: ['pdf', 'jpg'], maxSizeMb: 5, sortOrder: 4 },
-    { docKey: 'hotel_booking', nameFr: 'Réservation hôtel / Invitation', isMandatory: true, acceptedFormats: ['pdf'], maxSizeMb: 5, sortOrder: 5 },
-    { docKey: 'flight_booking', nameFr: 'Réservation de vol aller-retour', isMandatory: true, acceptedFormats: ['pdf'], maxSizeMb: 5, sortOrder: 6 },
-    { docKey: 'travel_insurance', nameFr: 'Assurance voyage (min 30 000€)', isMandatory: true, acceptedFormats: ['pdf'], maxSizeMb: 5, sortOrder: 7 },
-    { docKey: 'civil_status', nameFr: 'Acte de naissance / Livret de famille', isMandatory: false, acceptedFormats: ['pdf', 'jpg'], maxSizeMb: 5, sortOrder: 8 },
-  ]
-
-  for (const doc of docRequirements) {
-    await prisma.documentRequirement.upsert({
-      where: { visaTypeId_docKey: { visaTypeId: franceTourisme.id, docKey: doc.docKey } },
-      update: {},
-      create: { visaTypeId: franceTourisme.id, ...doc },
-    })
-  }
-
-  console.log(`✅ Documents requis créés pour France Tourisme`)
-
-  // ─── 5. Compte Super Admin ────────────────────────────────
-  const adminEmail = 'admin@visaplatform.tn'
-  const adminPasswordHash = await bcrypt.hash('Admin@2025!', 12)
-
+  // ── Compte Admin ─────────────────────────────────────────
+  const adminPassword = await bcrypt.hash("Admin@2024!", 12)
   const adminUser = await prisma.user.upsert({
-    where: { email: adminEmail },
+    where: { email: "admin@visatn.com" },
     update: {},
     create: {
-      email: adminEmail,
-      fullName: 'Super Administrateur',
-      passwordHash: adminPasswordHash,
-      accountType: 'FULL',
+      email: "admin@visatn.com",
+      fullName: "Administrateur VisaTN",
+      passwordHash: adminPassword,
       isVerified: true,
     },
   })
-
   await prisma.admin.upsert({
     where: { userId: adminUser.id },
     update: {},
     create: {
       userId: adminUser.id,
-      role: 'SUPER_ADMIN',
-      permissions: { all: true },
+      role: "SUPER_ADMIN",
       canManageForms: true,
       canManageCountries: true,
     },
   })
+  console.log("✅ Admin:", adminUser.email, "/ Admin@2024!")
 
-  console.log(`✅ Admin créé: ${adminEmail} / Admin@2025!`)
-  console.log('🎉 Seeding terminé !')
+  // ── Pays + Types de visa ──────────────────────────────────
+  type VisaInput = {
+    name: string; nameFr: string; category: "TOURISME"|"ETUDES"|"TRAVAIL"|"AFFAIRES"|"FAMILLE"|"TRANSIT"|"EVISA"
+    feeAgency: number; feeEmbassy: number; feeCurrency: string
+    processingDaysMin: number; processingDaysMax: number; durationDays?: number
+  }
+  const data: Array<{ code: string; nameFr: string; nameEn: string; flagEmoji: string; visas: VisaInput[] }> = [
+    {
+      code: "FR", nameFr: "France", nameEn: "France", flagEmoji: "🇫🇷",
+      visas: [
+        { name: "TOURIST",  nameFr: "Visa Tourisme",         category: "TOURISME", feeAgency: 150, feeEmbassy: 80,  feeCurrency: "EUR", processingDaysMin: 10, processingDaysMax: 20, durationDays: 90 },
+        { name: "STUDENT",  nameFr: "Visa Étudiant",         category: "ETUDES",   feeAgency: 200, feeEmbassy: 99,  feeCurrency: "EUR", processingDaysMin: 15, processingDaysMax: 30 },
+        { name: "WORK",     nameFr: "Visa Travail",          category: "TRAVAIL",  feeAgency: 250, feeEmbassy: 99,  feeCurrency: "EUR", processingDaysMin: 20, processingDaysMax: 45 },
+        { name: "FAMILY",   nameFr: "Regroupement Familial", category: "FAMILLE",  feeAgency: 300, feeEmbassy: 99,  feeCurrency: "EUR", processingDaysMin: 30, processingDaysMax: 60 },
+      ],
+    },
+    {
+      code: "DE", nameFr: "Allemagne", nameEn: "Germany", flagEmoji: "🇩🇪",
+      visas: [
+        { name: "TOURIST",  nameFr: "Visa Tourisme", category: "TOURISME", feeAgency: 150, feeEmbassy: 80, feeCurrency: "EUR", processingDaysMin: 10, processingDaysMax: 20, durationDays: 90 },
+        { name: "WORK",     nameFr: "Visa Travail",  category: "TRAVAIL",  feeAgency: 250, feeEmbassy: 75, feeCurrency: "EUR", processingDaysMin: 20, processingDaysMax: 45 },
+      ],
+    },
+    {
+      code: "IT", nameFr: "Italie", nameEn: "Italy", flagEmoji: "🇮🇹",
+      visas: [
+        { name: "TOURIST",  nameFr: "Visa Tourisme", category: "TOURISME", feeAgency: 150, feeEmbassy: 80, feeCurrency: "EUR", processingDaysMin: 10, processingDaysMax: 20, durationDays: 90 },
+        { name: "STUDENT",  nameFr: "Visa Étudiant", category: "ETUDES",   feeAgency: 200, feeEmbassy: 75, feeCurrency: "EUR", processingDaysMin: 15, processingDaysMax: 30 },
+      ],
+    },
+    {
+      code: "ES", nameFr: "Espagne", nameEn: "Spain", flagEmoji: "🇪🇸",
+      visas: [
+        { name: "TOURIST",  nameFr: "Visa Tourisme", category: "TOURISME", feeAgency: 150, feeEmbassy: 80, feeCurrency: "EUR", processingDaysMin: 10, processingDaysMax: 20, durationDays: 90 },
+        { name: "WORK",     nameFr: "Visa Travail",  category: "TRAVAIL",  feeAgency: 250, feeEmbassy: 75, feeCurrency: "EUR", processingDaysMin: 20, processingDaysMax: 45 },
+      ],
+    },
+    {
+      code: "US", nameFr: "États-Unis", nameEn: "United States", flagEmoji: "🇺🇸",
+      visas: [
+        { name: "TOURIST",  nameFr: "Visa B1/B2 Tourisme", category: "TOURISME", feeAgency: 300, feeEmbassy: 160, feeCurrency: "USD", processingDaysMin: 30, processingDaysMax: 90 },
+        { name: "STUDENT",  nameFr: "Visa F1 Étudiant",    category: "ETUDES",   feeAgency: 350, feeEmbassy: 160, feeCurrency: "USD", processingDaysMin: 30, processingDaysMax: 60 },
+        { name: "WORK",     nameFr: "Visa H1B Travail",    category: "TRAVAIL",  feeAgency: 400, feeEmbassy: 190, feeCurrency: "USD", processingDaysMin: 60, processingDaysMax: 120 },
+      ],
+    },
+    {
+      code: "CA", nameFr: "Canada", nameEn: "Canada", flagEmoji: "🇨🇦",
+      visas: [
+        { name: "TOURIST",  nameFr: "Visa Tourisme",     category: "TOURISME", feeAgency: 250, feeEmbassy: 100, feeCurrency: "CAD", processingDaysMin: 15, processingDaysMax: 30 },
+        { name: "STUDENT",  nameFr: "Permis d'études",   category: "ETUDES",   feeAgency: 300, feeEmbassy: 150, feeCurrency: "CAD", processingDaysMin: 20, processingDaysMax: 45 },
+        { name: "WORK",     nameFr: "Permis de travail", category: "TRAVAIL",  feeAgency: 350, feeEmbassy: 155, feeCurrency: "CAD", processingDaysMin: 30, processingDaysMax: 60 },
+      ],
+    },
+    {
+      code: "GB", nameFr: "Royaume-Uni", nameEn: "United Kingdom", flagEmoji: "🇬🇧",
+      visas: [
+        { name: "TOURIST",  nameFr: "Visa Visiteur",  category: "TOURISME", feeAgency: 250, feeEmbassy: 115, feeCurrency: "GBP", processingDaysMin: 10, processingDaysMax: 20 },
+        { name: "STUDENT",  nameFr: "Visa Étudiant",  category: "ETUDES",   feeAgency: 400, feeEmbassy: 363, feeCurrency: "GBP", processingDaysMin: 15, processingDaysMax: 30 },
+      ],
+    },
+    {
+      code: "TR", nameFr: "Turquie", nameEn: "Turkey", flagEmoji: "🇹🇷",
+      visas: [
+        { name: "TOURIST",  nameFr: "Visa Tourisme", category: "TOURISME", feeAgency: 100, feeEmbassy: 50, feeCurrency: "USD", processingDaysMin: 3, processingDaysMax: 10, durationDays: 30 },
+      ],
+    },
+    {
+      code: "AE", nameFr: "Émirats Arabes Unis", nameEn: "UAE", flagEmoji: "🇦🇪",
+      visas: [
+        { name: "TOURIST",  nameFr: "Visa Tourisme 30j", category: "TOURISME", feeAgency: 200, feeEmbassy: 90,  feeCurrency: "USD", processingDaysMin: 3, processingDaysMax: 7, durationDays: 30 },
+        { name: "WORK",     nameFr: "Visa Travail",      category: "TRAVAIL",  feeAgency: 300, feeEmbassy: 150, feeCurrency: "USD", processingDaysMin: 7, processingDaysMax: 20 },
+      ],
+    },
+    {
+      code: "CN", nameFr: "Chine", nameEn: "China", flagEmoji: "🇨🇳",
+      visas: [
+        { name: "TOURIST",  nameFr: "Visa Tourisme L",  category: "TOURISME", feeAgency: 250, feeEmbassy: 140, feeCurrency: "USD", processingDaysMin: 5, processingDaysMax: 15 },
+        { name: "BUSINESS", nameFr: "Visa Affaires M",  category: "AFFAIRES", feeAgency: 250, feeEmbassy: 140, feeCurrency: "USD", processingDaysMin: 5, processingDaysMax: 15 },
+      ],
+    },
+  ]
+
+  for (const c of data) {
+    const country = await prisma.country.upsert({
+      where: { code: c.code },
+      update: {},
+      create: { code: c.code, nameFr: c.nameFr, nameEn: c.nameEn, flagEmoji: c.flagEmoji, isActive: true },
+    })
+    for (const vt of c.visas) {
+      await prisma.visaType.create({
+        data: {
+          countryId: country.id,
+          name: vt.name,
+          nameFr: vt.nameFr,
+          category: vt.category,
+          feeAgency: vt.feeAgency,
+          feeEmbassy: vt.feeEmbassy,
+          feeCurrency: vt.feeCurrency,
+          processingDaysMin: vt.processingDaysMin,
+          processingDaysMax: vt.processingDaysMax,
+          durationDays: vt.durationDays ?? null,
+          isActive: true,
+        },
+      }).catch(() => {}) // ignore duplicates
+    }
+    console.log(`  ${c.flagEmoji} ${c.nameFr} — ${c.visas.length} visa(s)`)
+  }
+
+  console.log("\n✨ Seed terminé!")
+  console.log("📧 Admin: admin@visatn.com / Admin@2024!")
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Erreur seeding:', e)
-    process.exit(1)
-  })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
+  .catch((e) => { console.error(e); process.exit(1) })
+  .finally(async () => { await prisma.$disconnect() })
