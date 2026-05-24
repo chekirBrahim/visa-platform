@@ -9,6 +9,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db/client"
 import { generateReferenceCode } from "@/lib/utils"
 import { z } from "zod"
+import { Prisma } from "@prisma/client"
 
 const createApplicationSchema = z.object({
   visaTypeId: z.string().uuid(),
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
         tempAccessId,
         visaTypeId,
         formTemplateId,
-        formData: (formData ?? {}) as Record<string, unknown>,
+        formData: (formData ?? {}) as Prisma.InputJsonValue,
         status: "DRAFT",
         travelDate: travelDate ? new Date(travelDate) : null,
       },

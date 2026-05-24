@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db/client"
 import { z } from "zod"
+import { Prisma } from "@prisma/client"
 
 const aiMessageSchema = z.object({
   message: z.string().min(1).max(1000),
@@ -109,14 +110,14 @@ export async function POST(req: NextRequest) {
       await prisma.aiConversation.update({
         where: { sessionId: conversation.sessionId },
         data: {
-          messages: newHistory,
+          messages: newHistory as Prisma.InputJsonValue,
           tokensUsed: (conversation.tokensUsed ?? 0) + ((data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0)),
         },
       })
     } else {
       const newConversation = await prisma.aiConversation.create({
         data: {
-          messages: newHistory,
+          messages: newHistory as Prisma.InputJsonValue,
           contextCountryId: null,
           tokensUsed: (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0),
         },

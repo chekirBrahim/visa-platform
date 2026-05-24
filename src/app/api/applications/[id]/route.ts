@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db/client"
+import { Prisma } from "@prisma/client"
 
 // ─── GET /api/applications/[id] ──────────────────────────
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -110,7 +111,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           { status: 400 }
         )
       }
-      if (body.formData) updateData.formData = body.formData
+      if (body.formData) updateData.formData = body.formData as Prisma.InputJsonValue
       if (body.travelDate) updateData.travelDate = new Date(body.travelDate)
     }
 
