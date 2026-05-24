@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
         tempAccessId,
         visaTypeId,
         formTemplateId,
-        formData: formData ?? {},
+        formData: (formData ?? {}) as Record<string, unknown>,
         status: "DRAFT",
         travelDate: travelDate ? new Date(travelDate) : null,
       },
