@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Résoudre l'identité du demandeur
-    let userId: string | null = session?.user?.id ?? null
+    const userId: string | null = session?.user?.id ?? null
     let tempAccessId: string | null = null
 
     if (!userId && tempAccessToken) {

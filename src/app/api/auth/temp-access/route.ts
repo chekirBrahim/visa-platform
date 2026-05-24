@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const tokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 jours
 
     // Créer ou mettre à jour l'accès temporaire
-    const tempAccess = await prisma.tempAccess.upsert({
+    await prisma.tempAccess.upsert({
       where: { identifier },
       update: {
         otpCode: otpHash,
