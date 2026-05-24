@@ -108,7 +108,6 @@ export default function TrackContent() {
   const searchParams = useSearchParams()
   const initialRef = searchParams.get("ref") ?? ""
 
-  const [refCode, setRefCode] = useState(initialRef)
   const [inputValue, setInputValue] = useState(initialRef)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -148,7 +147,6 @@ export default function TrackContent() {
       }
       setApplication(json.data.application)
       setTempToken(json.data.tempAccessToken ?? "")
-      setRefCode(ref)
       // Charger messages
       loadMessages(json.data.application.id)
     } catch {

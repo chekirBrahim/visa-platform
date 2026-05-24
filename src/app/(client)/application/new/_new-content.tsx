@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import {
   ArrowLeft, ArrowRight, Check, Upload, Loader2, FileText,
-  Globe, X, AlertCircle, ChevronDown
+  X, AlertCircle,
 } from "lucide-react"
 
 type Country = {
@@ -29,7 +29,6 @@ const STEPS = ["Pays & visa", "Informations", "Documents", "Confirmation"]
 
 export default function NewApplicationContent() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const [step, setStep] = useState(0)
   const [countries, setCountries] = useState<Country[]>([])
   const [loading, setLoading] = useState(true)

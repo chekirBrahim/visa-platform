@@ -42,9 +42,6 @@ async function getDashboardData() {
   return { totalApplications, pendingReview, approved, rejected, thisMonth, recentApplications, byStatus }
 }
 
-const STATUS_OPTIONS = [
-  "SUBMITTED", "UNDER_REVIEW", "DOCUMENTS_PENDING", "APPROVED", "REJECTED", "DRAFT"
-]
 
 export default async function AdminDashboardPage() {
   const session = await auth()
