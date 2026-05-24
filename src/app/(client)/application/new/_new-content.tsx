@@ -20,9 +20,13 @@ type VisaType = {
   id: string
   name: string
   nameFr: string
-  processingDays: number
-  fees: number
-  currency: string
+  category: string
+  processingDaysMin: number
+  processingDaysMax: number
+  feeAgency: number
+  feeEmbassy: number
+  feeCurrency: string
+  durationDays: number | null
 }
 
 const STEPS = ["Pays & visa", "Informations", "Documents", "Confirmation"]
@@ -237,11 +241,11 @@ export default function NewApplicationContent() {
                     >
                       <div>
                         <div className="text-white font-medium">{vt.nameFr || vt.name}</div>
-                        <div className="text-slate-500 text-sm mt-0.5">Délai : {vt.processingDays} jours ouvrés</div>
+                        <div className="text-slate-500 text-sm mt-0.5">Délai : {vt.processingDaysMin}–{vt.processingDaysMax} jours</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-blue-400 font-semibold">{vt.fees} {vt.currency}</div>
-                        <div className="text-slate-600 text-xs">frais consulaires</div>
+                        <div className="text-blue-400 font-semibold">{Number(vt.feeAgency)} TND</div>
+                        <div className="text-slate-600 text-xs">frais agence</div>
                       </div>
                     </button>
                   ))}
@@ -393,8 +397,8 @@ export default function NewApplicationContent() {
                   <p className="text-slate-400 text-sm">{selectedCountry?.nameFr}</p>
                 </div>
                 <div className="ml-auto text-right">
-                  <p className="text-blue-400 font-semibold">{selectedVisaType?.fees} {selectedVisaType?.currency}</p>
-                  <p className="text-slate-500 text-xs">{selectedVisaType?.processingDays}j de traitement</p>
+                  <p className="text-blue-400 font-semibold">{selectedVisaType ? Number(selectedVisaType.feeAgency) : ""} TND</p>
+                  <p className="text-slate-500 text-xs">{selectedVisaType?.processingDaysMin}–{selectedVisaType?.processingDaysMax}j de traitement</p>
                 </div>
               </div>
 

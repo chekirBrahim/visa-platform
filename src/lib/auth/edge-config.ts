@@ -28,7 +28,8 @@ export const edgeAuthConfig: NextAuthConfig = {
 
       // Rediriger les utilisateurs connectés depuis /login
       if (isLoggedIn && nextUrl.pathname === "/login") {
-        return Response.redirect(new URL("/dashboard", nextUrl))
+        const target = isAdmin ? "/admin/dashboard" : "/dashboard"
+        return Response.redirect(new URL(target, nextUrl))
       }
 
       return true
