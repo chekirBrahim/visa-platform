@@ -4,8 +4,8 @@ const nextConfig: NextConfig = {
   // Optimisations image
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "**.vercel-storage.com" },
-      { protocol: "https", hostname: "**.blob.vercel-storage.com" },
+      { protocol: "https", hostname: "*.vercel-storage.com" },
+      { protocol: "https", hostname: "*.blob.vercel-storage.com" },
     ],
     formats: ["image/avif", "image/webp"],
   },
