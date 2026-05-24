@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
         where: { sessionId: conversation.sessionId },
         data: {
           messages: newHistory,
-          tokensUsed: (conversation.tokensUsed ?? 0) + (data.usage?.input_tokens + data.usage?.output_tokens ?? 0),
+          tokensUsed: (conversation.tokensUsed ?? 0) + ((data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0)),
         },
       })
     } else {
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
         data: {
           messages: newHistory,
           contextCountryId: null,
-          tokensUsed: data.usage?.input_tokens + data.usage?.output_tokens ?? 0,
+          tokensUsed: (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0),
         },
       })
       conversation = newConversation
