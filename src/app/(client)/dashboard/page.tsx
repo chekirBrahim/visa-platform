@@ -19,14 +19,15 @@ async function getApplications(userId: string) {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    DRAFT:       "bg-gray-100 text-gray-600",
-    SUBMITTED:   "bg-blue-50 text-blue-700",
-    REVIEWING:   "bg-yellow-50 text-yellow-700",
-    PENDING:     "bg-orange-50 text-orange-700",
-    APPROVED:    "bg-green-50 text-green-700",
-    REJECTED:    "bg-red-50 text-red-700",
-    COMPLETED:   "bg-emerald-50 text-emerald-700",
-    CANCELLED:   "bg-gray-100 text-gray-500",
+    DRAFT:              "bg-gray-100 text-gray-600",
+    SUBMITTED:          "bg-blue-50 text-blue-700",
+    DOCUMENTS_PENDING:  "bg-orange-50 text-orange-700",
+    UNDER_REVIEW:       "bg-yellow-50 text-yellow-700",
+    SENT_TO_EMBASSY:    "bg-indigo-50 text-indigo-700",
+    AT_EMBASSY:         "bg-purple-50 text-purple-700",
+    ADDITIONAL_INFO:    "bg-amber-50 text-amber-700",
+    REJECTED:           "bg-red-50 text-red-700",
+    CANCELLED:          "bg-gray-100 text-gray-500",
   }
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[status] ?? "bg-gray-100 text-gray-600"}`}>
@@ -62,11 +63,12 @@ export default async function DashboardPage() {
 
   const applications = await getApplications(session.user.id)
 
+  const IN_PROGRESS_STATUSES = ["SUBMITTED", "DOCUMENTS_PENDING", "UNDER_REVIEW", "SENT_TO_EMBASSY", "AT_EMBASSY", "ADDITIONAL_INFO"]
   const stats = {
-    total:     applications.length,
-    draft:     applications.filter((a) => a.status === "DRAFT").length,
-    inProgress: applications.filter((a) => ["SUBMITTED", "REVIEWING", "PENDING"].includes(a.status)).length,
-    approved:  applications.filter((a) => a.status === "APPROVED" || a.status === "COMPLETED").length,
+    total:      applications.length,
+    draft:      applications.filter((a) => a.status === "DRAFT").length,
+    inProgress: applications.filter((a) => IN_PROGRESS_STATUSES.includes(a.status)).length,
+    rejected:   applications.filter((a) => a.status === "REJECTED" || a.status === "CANCELLED").length,
   }
 
   return (
@@ -123,7 +125,7 @@ export default async function DashboardPage() {
             { label: "Total",        value: stats.total,       color: "text-gray-900" },
             { label: "Brouillons",   value: stats.draft,       color: "text-gray-500" },
             { label: "En cours",     value: stats.inProgress,  color: "text-blue-600" },
-            { label: "Approuvés",    value: stats.approved,    color: "text-green-600" },
+            { label: "Rejetés",      value: stats.rejected,    color: "text-red-500" },
           ].map((s) => (
             <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
               <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
