@@ -17,34 +17,39 @@ export const authConfig: NextAuthConfig = {
         password: { label: "Mot de passe", type: "password" },
       },
       async authorize(credentials) {
-        const parsed = loginSchema.safeParse(credentials)
-        if (!parsed.success) return null
+        try {
+          const parsed = loginSchema.safeParse(credentials)
+          if (!parsed.success) return null
 
-        const { email, password } = parsed.data
+          const { email, password } = parsed.data
 
-        const user = await prisma.user.findUnique({
-          where: { email },
-          include: { admin: true },
-        })
+          const user = await prisma.user.findUnique({
+            where: { email },
+            include: { admin: true },
+          })
 
-        if (!user || !user.passwordHash) return null
-        if (!user.isActive) return null
+          if (!user || !user.passwordHash) return null
+          if (!user.isActive) return null
 
-        const isValid = await bcrypt.compare(password, user.passwordHash)
-        if (!isValid) return null
+          const isValid = await bcrypt.compare(password, user.passwordHash)
+          if (!isValid) return null
 
-        // Mise à jour lastLoginAt
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { lastLoginAt: new Date() },
-        })
+          // Mise à jour lastLoginAt (non-bloquant)
+          prisma.user.update({
+            where: { id: user.id },
+            data: { lastLoginAt: new Date() },
+          }).catch(() => {})
 
-        return {
-          id: user.id,
-          email: user.email ?? "",
-          name: user.fullName,
-          isAdmin: !!user.admin,
-          adminRole: user.admin?.role ?? null,
+          return {
+            id: user.id,
+            email: user.email ?? "",
+            name: user.fullName,
+            isAdmin: !!user.admin,
+            adminRole: user.admin?.role ?? null,
+          }
+        } catch (err) {
+          console.error("[Auth] authorize error:", err)
+          return null
         }
       },
     }),
