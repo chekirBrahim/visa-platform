@@ -93,11 +93,3 @@ export const authConfig: NextAuthConfig = {
 
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 }, // 30 jours
 }
-   if (isAdminRoute) return isLoggedIn && isAdmin
-      if (isClientRoute) return isLoggedIn
-      return true
-    },
-  },
-
-  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 }, // 30 jours
-}
