@@ -36,7 +36,7 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function StepProgress({ steps }: { steps: Array<{ status: string; step: { stepNumber: number; name: string } }> }) {
+function StepProgress({ steps }: { steps: Array<{ status: string; step: { stepNumber: number; nameFr: string; nameAr?: string | null } }> }) {
   const total = steps.length
   const done = steps.filter((s) => s.status === "COMPLETED").length
   const pct = total ? Math.round((done / total) * 100) : 0
