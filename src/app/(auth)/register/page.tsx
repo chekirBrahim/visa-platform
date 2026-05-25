@@ -3,16 +3,6 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Eye, EyeOff, Mail, Lock, User, Phone, Globe, ArrowRight, Loader2, CheckCircle } from "lucide-react"
-
-const NATIONALITIES = [
-  { code: "TN", name: "Tunisienne" },
-  { code: "DZ", name: "Algérienne" },
-  { code: "MA", name: "Marocaine" },
-  { code: "LY", name: "Libyenne" },
-  { code: "EG", name: "Égyptienne" },
-  { code: "OTHER", name: "Autre" },
-]
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -20,244 +10,263 @@ export default function RegisterPage() {
     fullName: "",
     email: "",
     phone: "",
-    nationality: "TN",
     password: "",
     confirmPassword: "",
+    nationality: "TN",
   })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
 
-  const passwordStrength = (pw: string) => {
-    let score = 0
-    if (pw.length >= 8) score++
-    if (/[A-Z]/.test(pw)) score++
-    if (/[0-9]/.test(pw)) score++
-    if (/[^A-Za-z0-9]/.test(pw)) score++
-    return score
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
-
-  const strength = passwordStrength(form.password)
-  const strengthColors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-emerald-500"]
-  const strengthLabels = ["Faible", "Moyen", "Bon", "Fort"]
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError("")
+
     if (form.password !== form.confirmPassword) {
       setError("Les mots de passe ne correspondent pas")
       return
     }
+    if (form.password.length < 8) {
+      setError("Le mot de passe doit contenir au moins 8 caractères")
+      return
+    }
+
     setLoading(true)
-    setError("")
-
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fullName: form.fullName,
-        email: form.email || undefined,
-        phone: form.phone || undefined,
-        nationality: form.nationality,
-        password: form.password,
-      }),
-    })
-
-    const data = await res.json()
-
-    if (!data.success) {
-      setError(data.error || "Erreur lors de la création du compte")
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: form.fullName,
+          email: form.email || undefined,
+          phone: form.phone || undefined,
+          password: form.password,
+          nationality: form.nationality,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? "Erreur lors de l'inscription")
+      } else {
+        router.push("/login?registered=1")
+      }
+    } catch {
+      setError("Une erreur est survenue. Réessayez.")
+    } finally {
       setLoading(false)
-    } else {
-      setSuccess(true)
-      setTimeout(() => router.push("/login"), 2000)
     }
   }
 
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-8 h-8 text-emerald-400" />
-          </div>
-          <h2 className="text-white text-xl font-bold mb-2">Compte créé !</h2>
-          <p className="text-slate-400 text-sm">Redirection vers la connexion...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center p-4 py-12">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-400/8 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen flex">
 
-      <div className="relative w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-lg">V</span>
+      {/* ── Left brand panel ─────────────────────────────── */}
+      <div className="hidden lg:flex lg:w-5/12 bg-blue-600 flex-col justify-between p-12 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/40 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-700/50 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3" />
+
+        <div className="relative">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <span className="text-white font-black text-base">V</span>
             </div>
-            <span className="text-white font-bold text-2xl">VisaTN</span>
+            <span className="font-bold text-xl text-white tracking-tight">VisaTN</span>
           </Link>
-          <p className="text-slate-400 mt-2 text-sm">Créez votre compte gratuitement</p>
         </div>
 
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
-          <h1 className="text-white text-2xl font-bold mb-1">Créer un compte</h1>
-          <p className="text-slate-400 text-sm mb-6">Gérez tous vos dossiers visa en un seul endroit</p>
+        <div className="relative">
+          <h2 className="text-3xl font-extrabold text-white leading-snug mb-4">
+            Démarrez votre<br />démarche visa aujourd'hui.
+          </h2>
+          <p className="text-blue-100 text-base leading-relaxed mb-10">
+            Créez votre compte en 2 minutes et déposez votre premier dossier immédiatement. Nos experts prennent en charge le reste.
+          </p>
 
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3 mb-5">
-              {error}
+          <div className="space-y-3">
+            {[
+              "Formulaire guidé adapté à chaque ambassade",
+              "Vérification de documents par nos experts",
+              "Suivi en temps réel de votre dossier",
+              "Notifications à chaque étape",
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-3 text-blue-100 text-sm">
+                <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative">
+          <p className="text-blue-200 text-sm">
+            © {new Date().getFullYear()} VisaTN — Agence visa certifiée, Tunis
+          </p>
+        </div>
+      </div>
+
+      {/* ── Right form panel ─────────────────────────────── */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-white overflow-y-auto">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2 mb-8 lg:hidden">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+              <span className="text-white font-black text-sm">V</span>
             </div>
-          )}
+            <span className="font-bold text-lg text-gray-900">Visa<span className="text-blue-600">TN</span></span>
+          </div>
+
+          <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Créer un compte</h1>
+          <p className="text-gray-500 text-sm mb-8">
+            Gratuit · Aucune carte bancaire requise
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Full name */}
             <div>
-              <label className="block text-sm text-slate-300 mb-1.5 font-medium">Nom complet</label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="text"
-                  required
-                  value={form.fullName}
-                  onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))}
-                  placeholder="Mohamed Ben Ali"
-                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30 transition-all"
-                />
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Nom complet
+              </label>
+              <input
+                type="text"
+                name="fullName"
+                value={form.fullName}
+                onChange={handleChange}
+                placeholder="Mohamed Ben Ali"
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+              />
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm text-slate-300 mb-1.5 font-medium">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  placeholder="votre@email.com"
-                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30 transition-all"
-                />
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Adresse email
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="vous@example.com"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+              />
             </div>
 
             {/* Phone */}
             <div>
-              <label className="block text-sm text-slate-300 mb-1.5 font-medium">Téléphone <span className="text-slate-500">(optionnel)</span></label>
-              <div className="relative">
-                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                  placeholder="+216 XX XXX XXX"
-                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30 transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Nationality */}
-            <div>
-              <label className="block text-sm text-slate-300 mb-1.5 font-medium">Nationalité</label>
-              <div className="relative">
-                <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <select
-                  value={form.nationality}
-                  onChange={e => setForm(f => ({ ...f, nationality: e.target.value }))}
-                  className="w-full bg-slate-900 border border-white/10 text-white rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30 transition-all appearance-none"
-                >
-                  {NATIONALITIES.map(n => (
-                    <option key={n.code} value={n.code}>{n.name}</option>
-                  ))}
-                </select>
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Téléphone <span className="text-gray-400 font-normal">(optionnel)</span>
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                placeholder="+216 XX XXX XXX"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+              />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm text-slate-300 mb-1.5 font-medium">Mot de passe</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Mot de passe
+              </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   type={showPassword ? "text" : "password"}
-                  required
+                  name="password"
                   value={form.password}
-                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                  placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl pl-10 pr-11 py-3 text-sm focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30 transition-all"
+                  onChange={handleChange}
+                  placeholder="8 caractères minimum"
+                  required
+                  minLength={8}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow pr-11"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(p => !p)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
                 </button>
               </div>
-              {form.password && (
-                <div className="mt-2">
-                  <div className="flex gap-1">
-                    {[0, 1, 2, 3].map(i => (
-                      <div
-                        key={i}
-                        className={`h-1 flex-1 rounded-full transition-all ${i < strength ? strengthColors[strength - 1] : "bg-white/10"}`}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">{form.password ? strengthLabels[strength - 1] || "Trop court" : ""}</p>
-                </div>
-              )}
             </div>
 
-            {/* Confirm password */}
+            {/* Confirm Password */}
             <div>
-              <label className="block text-sm text-slate-300 mb-1.5 font-medium">Confirmer le mot de passe</label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={form.confirmPassword}
-                  onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))}
-                  placeholder="••••••••"
-                  className={`w-full bg-white/5 border text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-1 transition-all ${
-                    form.confirmPassword && form.password !== form.confirmPassword
-                      ? "border-red-500/50 focus:border-red-500 focus:ring-red-500"
-                      : "border-white/10 focus:border-amber-400/50 focus:ring-amber-400/30"
-                  }`}
-                />
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Confirmer le mot de passe
+              </label>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="confirmPassword"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                placeholder="••••••••"
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+              />
             </div>
 
+            {/* Error */}
+            {error && (
+              <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
+                {error}
+              </div>
+            )}
+
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-amber-400 hover:bg-amber-300 disabled:opacity-60 disabled:cursor-not-allowed text-slate-900 font-bold rounded-xl py-3 flex items-center justify-center gap-2 transition-all duration-200 mt-2"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-colors shadow-sm text-sm mt-2"
             >
               {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Création...</>
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Création du compte…
+                </span>
               ) : (
-                <>Créer mon compte <ArrowRight className="w-4 h-4" /></>
+                "Créer mon compte"
               )}
             </button>
           </form>
 
-          <p className="text-center text-slate-400 text-sm mt-5">
+          {/* Login link */}
+          <p className="mt-6 text-center text-sm text-gray-500">
             Déjà un compte ?{" "}
-            <Link href="/login" className="text-amber-400 hover:text-amber-300 font-medium transition-colors">
+            <Link href="/login" className="text-blue-600 font-semibold hover:underline">
               Se connecter
             </Link>
           </p>
+
+          <p className="mt-4 text-center text-xs text-gray-400">
+            En créant un compte, vous acceptez nos conditions d'utilisation et notre politique de confidentialité.
+          </p>
         </div>
       </div>
+
     </div>
   )
 }

@@ -4,149 +4,202 @@ import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Eye, EyeOff, Mail, Lock, ArrowRight, Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [form, setForm] = useState({ email: "", password: "" })
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError("")
-
-    const res = await signIn("credentials", {
-      email: form.email,
-      password: form.password,
-      redirect: false,
-    })
-
-    if (res?.error) {
-      setError("Email ou mot de passe incorrect")
+    setLoading(true)
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
+      if (res?.error) {
+        setError("Email ou mot de passe incorrect")
+      } else {
+        router.push("/dashboard")
+      }
+    } catch {
+      setError("Une erreur est survenue. Réessayez.")
+    } finally {
       setLoading(false)
-    } else {
-      router.push("/dashboard")
-      router.refresh()
     }
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background glows */}
-      <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-amber-500/6 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/3 w-80 h-80 bg-teal-500/6 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/4 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen flex">
 
-      <div className="relative w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/25 group-hover:shadow-amber-400/40 transition-shadow">
-              <span className="text-slate-900 font-black text-base">V</span>
+      {/* ── Left brand panel ─────────────────────────────── */}
+      <div className="hidden lg:flex lg:w-5/12 bg-blue-600 flex-col justify-between p-12 relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/40 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-700/50 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3" />
+
+        <div className="relative">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <span className="text-white font-black text-base">V</span>
             </div>
-            <span className="text-white font-bold text-2xl tracking-tight">
-              Visa<span className="text-amber-400">TN</span>
-            </span>
+            <span className="font-bold text-xl text-white tracking-tight">VisaTN</span>
           </Link>
-          <p className="text-slate-500 mt-2 text-sm">Votre espace sécurisé</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
-          <div className="mb-6">
-            <h1 className="text-white text-2xl font-bold tracking-tight">Connexion</h1>
-            <p className="text-slate-400 text-sm mt-1">Accédez à votre espace visa</p>
+        <div className="relative">
+          <h2 className="text-3xl font-extrabold text-white leading-snug mb-4">
+            Votre dossier visa,<br />suivi de A à Z.
+          </h2>
+          <p className="text-blue-100 text-base leading-relaxed mb-10">
+            Déposez vos documents, suivez chaque étape en temps réel, et laissez nos experts maximiser vos chances d'obtention.
+          </p>
+
+          {/* Social proof */}
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { value: "98%",    label: "Taux d'approbation" },
+              { value: "5 000+", label: "Visas traités" },
+              { value: "8",      label: "Pays couverts" },
+              { value: "24h",    label: "Délai vérification" },
+            ].map((s) => (
+              <div key={s.label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                <div className="text-2xl font-black text-white">{s.value}</div>
+                <div className="text-blue-200 text-xs mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative">
+          <p className="text-blue-200 text-sm">
+            © {new Date().getFullYear()} VisaTN — Agence visa certifiée, Tunis
+          </p>
+        </div>
+      </div>
+
+      {/* ── Right form panel ─────────────────────────────── */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-white">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2 mb-8 lg:hidden">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+              <span className="text-white font-black text-sm">V</span>
+            </div>
+            <span className="font-bold text-lg text-gray-900">Visa<span className="text-blue-600">TN</span></span>
           </div>
 
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3 mb-5 flex items-center gap-2">
-              <span className="text-base">⚠️</span>
-              {error}
-            </div>
-          )}
+          <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Bienvenue</h1>
+          <p className="text-gray-500 text-sm mb-8">
+            Connectez-vous à votre espace client
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
             <div>
-              <label className="block text-sm text-slate-300 mb-1.5 font-medium">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="email"
-                  required
-                  value={form.email}
-                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  placeholder="votre@email.com"
-                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-600 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30 transition-all"
-                />
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Adresse email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="vous@example.com"
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+              />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm text-slate-300 mb-1.5 font-medium">Mot de passe</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-gray-700">
+                  Mot de passe
+                </label>
+                <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline font-medium">
+                  Mot de passe oublié ?
+                </Link>
+              </div>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   type={showPassword ? "text" : "password"}
-                  required
-                  value={form.password}
-                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-600 rounded-xl pl-10 pr-11 py-3 text-sm focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30 transition-all"
+                  required
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow pr-11"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(p => !p)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
                 </button>
               </div>
             </div>
+
+            {/* Error */}
+            {error && (
+              <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
+                {error}
+              </div>
+            )}
 
             {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-amber-400 hover:bg-amber-300 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 font-bold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20 hover:shadow-amber-400/30 mt-2"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-colors shadow-sm text-sm mt-2"
             >
               {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Connexion...</>
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Connexion en cours…
+                </span>
               ) : (
-                <>Se connecter <ArrowRight className="w-4 h-4" /></>
+                "Se connecter"
               )}
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-white/8" />
-            <span className="text-slate-600 text-xs">ou</span>
-            <div className="flex-1 h-px bg-white/8" />
-          </div>
-
-          {/* Guest access */}
-          <Link
-            href="/application/new"
-            className="w-full border border-white/10 hover:border-teal-400/30 hover:bg-teal-400/5 text-slate-400 hover:text-teal-300 font-medium rounded-xl py-3 flex items-center justify-center gap-2 transition-all text-sm"
-          >
-            Continuer sans compte →
-          </Link>
-
           {/* Register link */}
-          <p className="text-center text-slate-500 text-sm mt-5">
+          <p className="mt-6 text-center text-sm text-gray-500">
             Pas encore de compte ?{" "}
-            <Link href="/register" className="text-amber-400 hover:text-amber-300 font-medium transition-colors">
+            <Link href="/register" className="text-blue-600 font-semibold hover:underline">
               Créer un compte
             </Link>
           </p>
-        </div>
 
+          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+            <p className="text-xs text-gray-400">
+              Vous avez un code de suivi ?{" "}
+              <Link href="/track" className="text-blue-600 hover:underline">
+                Suivre mon dossier sans compte →
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
+
     </div>
   )
 }

@@ -2,8 +2,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/db/client"
 import Link from "next/link"
-import { Plus, FileText, Clock, CheckCircle, XCircle, AlertCircle, LogOut, User, ChevronRight } from "lucide-react"
-import { getStatusLabel, getStatusColor, formatDate } from "@/lib/utils"
+import { formatDate, getStatusLabel } from "@/lib/utils"
 
 async function getApplications(userId: string) {
   return prisma.application.findMany({
@@ -11,175 +10,238 @@ async function getApplications(userId: string) {
     include: {
       visaType: { include: { country: true } },
       documents: { select: { id: true, reviewStatus: true } },
+      stepHistory: { include: { step: true }, orderBy: { createdAt: "desc" } },
     },
     orderBy: { createdAt: "desc" },
     take: 20,
   })
 }
 
-function StatusIcon({ status }: { status: string }) {
-  if (status === "APPROVED") return <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-  if (status === "REJECTED") return <XCircle className="w-3.5 h-3.5 text-red-400" />
-  if (status === "DOCUMENTS_PENDING") return <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
-  return <Clock className="w-3.5 h-3.5 text-teal-400" />
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    DRAFT:       "bg-gray-100 text-gray-600",
+    SUBMITTED:   "bg-blue-50 text-blue-700",
+    REVIEWING:   "bg-yellow-50 text-yellow-700",
+    PENDING:     "bg-orange-50 text-orange-700",
+    APPROVED:    "bg-green-50 text-green-700",
+    REJECTED:    "bg-red-50 text-red-700",
+    COMPLETED:   "bg-emerald-50 text-emerald-700",
+    CANCELLED:   "bg-gray-100 text-gray-500",
+  }
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[status] ?? "bg-gray-100 text-gray-600"}`}>
+      {getStatusLabel(status)}
+    </span>
+  )
+}
+
+function StepProgress({ steps }: { steps: Array<{ status: string; step: { stepNumber: number; name: string } }> }) {
+  const total = steps.length
+  const done = steps.filter((s) => s.status === "COMPLETED").length
+  const pct = total ? Math.round((done / total) * 100) : 0
+
+  return (
+    <div className="mt-2">
+      <div className="flex justify-between text-xs text-gray-400 mb-1">
+        <span>{done}/{total} étapes</span>
+        <span>{pct}%</span>
+      </div>
+      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-blue-500 rounded-full transition-all"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
 }
 
 export default async function DashboardPage() {
   const session = await auth()
-  if (!session?.user) redirect("/login")
+  if (!session?.user?.id) redirect("/login")
 
-  const user = session.user as { id: string; name?: string | null; email?: string | null }
-  const applications = await getApplications(user.id)
+  const applications = await getApplications(session.user.id)
 
   const stats = {
-    total:    applications.length,
-    pending:  applications.filter(a => ["SUBMITTED", "UNDER_REVIEW", "DOCUMENTS_PENDING"].includes(a.status)).length,
-    approved: applications.filter(a => a.status === "APPROVED").length,
-    rejected: applications.filter(a => a.status === "REJECTED").length,
+    total:     applications.length,
+    draft:     applications.filter((a) => a.status === "DRAFT").length,
+    inProgress: applications.filter((a) => ["SUBMITTED", "REVIEWING", "PENDING"].includes(a.status)).length,
+    approved:  applications.filter((a) => a.status === "APPROVED" || a.status === "COMPLETED").length,
   }
 
-  const firstName = user.name?.split(" ")[0] ?? "vous"
-
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-gray-50">
 
-      {/* ── Header ─────────────────────────────────────── */}
-      <header className="sticky top-0 z-10 border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md shadow-amber-500/20">
-              <span className="text-slate-900 font-black text-sm">V</span>
+      {/* ── Top navbar ───────────────────────────────────── */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+              <span className="text-white font-black text-xs">V</span>
             </div>
-            <span className="font-bold text-base tracking-tight">
-              Visa<span className="text-amber-400">TN</span>
-            </span>
+            <span className="font-bold text-gray-900">Visa<span className="text-blue-600">TN</span></span>
           </Link>
 
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 bg-white/5 border border-white/8 rounded-lg px-3 py-1.5">
-              <div className="w-5 h-5 bg-amber-400/20 border border-amber-400/30 rounded-full flex items-center justify-center">
-                <User className="w-2.5 h-2.5 text-amber-400" />
-              </div>
-              <span className="text-slate-300 text-sm font-medium">{user.name ?? user.email}</span>
-            </div>
+            <span className="text-sm text-gray-500 hidden sm:block">
+              {session.user.name}
+            </span>
             <Link
               href="/api/auth/signout"
-              className="flex items-center gap-1.5 text-slate-500 hover:text-red-400 transition-colors text-sm px-2 py-1.5 rounded-lg hover:bg-red-500/5"
-              title="Se déconnecter"
+              className="text-sm text-gray-500 hover:text-gray-800 font-medium transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100"
             >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:block text-xs">Quitter</span>
+              Déconnexion
             </Link>
           </div>
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-5xl mx-auto px-6 py-8">
 
-        {/* ── Welcome ──────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        {/* ── Page header ──────────────────────────────────── */}
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-2xl">👋</span>
-              <h1 className="text-2xl font-black tracking-tight">
-                Bonjour, <span className="text-amber-400">{firstName}</span>
-              </h1>
-            </div>
-            <p className="text-slate-500 text-sm">Gérez vos demandes de visa depuis votre espace personnel</p>
+            <h1 className="text-2xl font-extrabold text-gray-900">Mes dossiers</h1>
+            <p className="text-gray-500 text-sm mt-1">
+              Bonjour, {session.user.name?.split(" ")[0]} — suivez et gérez vos demandes de visa
+            </p>
           </div>
           <Link
             href="/application/new"
-            className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold rounded-xl px-5 py-2.5 text-sm transition-all shadow-lg shadow-amber-500/20 hover:-translate-y-0.5 whitespace-nowrap"
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
           >
-            <Plus className="w-4 h-4" />
-            Nouvelle demande
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            Nouveau dossier
           </Link>
         </div>
 
-        {/* ── Stats ────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+        {/* ── Stats cards ──────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: "Total dossiers",  value: stats.total,    color: "text-white",        bg: "bg-white/5",        border: "border-white/8",        icon: "📁" },
-            { label: "En cours",        value: stats.pending,  color: "text-teal-400",     bg: "bg-teal-400/5",     border: "border-teal-400/15",    icon: "⏳" },
-            { label: "Approuvés",       value: stats.approved, color: "text-emerald-400",  bg: "bg-emerald-400/5",  border: "border-emerald-400/15", icon: "✅" },
-            { label: "Refusés",         value: stats.rejected, color: "text-red-400",      bg: "bg-red-400/5",      border: "border-red-400/15",     icon: "❌" },
-          ].map(s => (
-            <div key={s.label} className={`${s.bg} border ${s.border} rounded-2xl p-4 transition-all hover:scale-[1.02]`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-lg">{s.icon}</span>
-              </div>
-              <p className={`text-3xl font-black ${s.color}`}>{s.value}</p>
-              <p className="text-slate-500 text-xs mt-0.5 font-medium">{s.label}</p>
+            { label: "Total",        value: stats.total,       color: "text-gray-900" },
+            { label: "Brouillons",   value: stats.draft,       color: "text-gray-500" },
+            { label: "En cours",     value: stats.inProgress,  color: "text-blue-600" },
+            { label: "Approuvés",    value: stats.approved,    color: "text-green-600" },
+          ].map((s) => (
+            <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+              <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
+              <div className="text-xs text-gray-400 mt-1 font-medium">{s.label}</div>
             </div>
           ))}
         </div>
 
-        {/* ── Applications ─────────────────────────────── */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-bold text-lg">Mes dossiers</h2>
-            {applications.length > 0 && (
-              <span className="text-slate-600 text-sm">{applications.length} dossier{applications.length > 1 ? "s" : ""}</span>
-            )}
+        {/* ── Applications list ────────────────────────────── */}
+        {applications.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
+            <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-7 h-7 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 mb-2">Aucun dossier</h3>
+            <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">
+              Démarrez votre première demande de visa en quelques minutes.
+            </p>
+            <Link
+              href="/application/new"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+              Créer mon premier dossier
+            </Link>
           </div>
-
-          {applications.length === 0 ? (
-            <div className="bg-white/3 border border-white/8 rounded-2xl p-16 text-center">
-              <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-8 h-8 text-slate-600" />
-              </div>
-              <p className="text-white font-bold text-lg mb-2">Aucune demande pour le moment</p>
-              <p className="text-slate-500 text-sm mb-6 max-w-xs mx-auto">Commencez par déposer votre première demande de visa en quelques minutes</p>
+        ) : (
+          <div className="space-y-3">
+            {applications.map((app) => (
               <Link
-                href="/application/new"
-                className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold rounded-xl px-6 py-3 text-sm transition-all shadow-lg shadow-amber-500/20"
+                key={app.id}
+                href={`/dashboard/applications/${app.id}`}
+                className="group block bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-blue-200 hover:shadow-md transition-all"
               >
-                <Plus className="w-4 h-4" />
-                Nouvelle demande
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {applications.map(app => (
-                <Link
-                  key={app.id}
-                  href={`/dashboard/${app.id}`}
-                  className="group flex items-center gap-4 bg-white/3 border border-white/8 hover:border-amber-400/20 hover:bg-white/5 rounded-2xl p-4 sm:p-5 transition-all"
-                >
-                  {/* Flag */}
-                  <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
-                    {app.visaType.country.flagEmoji}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div>
-                        <p className="text-white font-semibold text-sm group-hover:text-amber-300 transition-colors truncate">
-                          {app.visaType.nameFr || app.visaType.name}
-                        </p>
-                        <p className="text-slate-500 text-xs mt-0.5">{app.visaType.country.nameFr}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold ${getStatusColor(app.status)}`}>
-                          <StatusIcon status={app.status} />
-                          {getStatusLabel(app.status)}
+                <div className="flex items-start justify-between gap-4">
+                  {/* Flag + info */}
+                  <div className="flex items-start gap-4 min-w-0">
+                    <div className="text-3xl flex-shrink-0 mt-0.5">
+                      {/* Country flag emoji map */}
+                      {(app.visaType?.country?.code === "FR" && "🇫🇷") ||
+                       (app.visaType?.country?.code === "IT" && "🇮🇹") ||
+                       (app.visaType?.country?.code === "DE" && "🇩🇪") ||
+                       (app.visaType?.country?.code === "ES" && "🇪🇸") ||
+                       (app.visaType?.country?.code === "US" && "🇺🇸") ||
+                       (app.visaType?.country?.code === "CA" && "🇨🇦") ||
+                       (app.visaType?.country?.code === "GB" && "🇬🇧") ||
+                       (app.visaType?.country?.code === "AE" && "🇦🇪") ||
+                       "🌍"}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="font-semibold text-gray-900 text-sm">
+                          {app.visaType?.country?.nameFr ?? "Pays inconnu"}
                         </span>
+                        <span className="text-gray-300">·</span>
+                        <span className="text-sm text-gray-500">{app.visaType?.name ?? "Visa"}</span>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-white/5 text-xs text-slate-600">
-                      <span className="font-mono text-amber-400/60">{app.referenceCode}</span>
-                      <span>{formatDate(app.createdAt)} · {app.documents?.length ?? 0} doc(s)</span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-gray-400 font-mono">{app.referenceCode}</span>
+                        <span className="text-gray-200 text-xs">|</span>
+                        <span className="text-xs text-gray-400">
+                          Créé le {formatDate(app.createdAt.toISOString())}
+                        </span>
+                        {app.travelDate && (
+                          <>
+                            <span className="text-gray-200 text-xs">|</span>
+                            <span className="text-xs text-gray-400">
+                              Départ: {formatDate(app.travelDate.toISOString())}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      {app.stepHistory.length > 0 && (
+                        <StepProgress steps={app.stepHistory} />
+                      )}
                     </div>
                   </div>
 
-                  <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-amber-400 transition-colors flex-shrink-0" />
-                </Link>
-              ))}
+                  {/* Status + arrow */}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <StatusBadge status={app.status} />
+                    <svg
+                      className="w-4 h-4 text-gray-300 group-hover:text-blue-400 transition-colors"
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* ── AI Assistant banner ──────────────────────────── */}
+        <div className="mt-6 bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl p-5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+              <span className="text-lg">🤖</span>
             </div>
-          )}
+            <div>
+              <p className="text-white font-semibold text-sm">Assistant IA Visa</p>
+              <p className="text-blue-100 text-xs">Posez vos questions sur les démarches visa 24h/24</p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/ai"
+            className="flex-shrink-0 px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors backdrop-blur-sm"
+          >
+            Ouvrir →
+          </Link>
         </div>
-      </div>
+
+      </main>
     </div>
   )
 }

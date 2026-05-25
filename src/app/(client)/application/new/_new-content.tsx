@@ -1,93 +1,212 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import {
-  ArrowLeft, ArrowRight, Check, Upload, Loader2, FileText, X, AlertCircle,
-} from "lucide-react"
 
-type Country = {
+// ── Types ─────────────────────────────────────────────────
+interface Country {
   id: string
   code: string
   nameFr: string
-  flagEmoji: string
   visaTypes: VisaType[]
 }
 
-type VisaType = {
+interface VisaType {
   id: string
   name: string
-  nameFr: string
-  category: string
-  processingDaysMin: number
-  processingDaysMax: number
-  feeAgency: number
-  feeEmbassy: number
-  feeCurrency: string
-  durationDays: number | null
+  description: string | null
+  processingDays: number | null
+  fee: number | null
 }
 
-const STEPS = ["Pays & visa", "Informations", "Documents", "Confirmation"]
+interface FormTemplate {
+  id: string
+  name: string
+  fields: FormField[]
+}
 
+interface FormField {
+  id: string
+  name: string
+  label: string
+  type: string
+  required: boolean
+  options: string[] | null
+  placeholder: string | null
+  sortOrder: number
+}
+
+// ── Step indicator ────────────────────────────────────────
+function StepIndicator({ current, steps }: { current: number; steps: string[] }) {
+  return (
+    <div className="flex items-center justify-center gap-0 mb-10">
+      {steps.map((label, i) => {
+        const step = i + 1
+        const isCompleted = step < current
+        const isActive = step === current
+
+        return (
+          <div key={label} className="flex items-center">
+            {/* Circle */}
+            <div className="flex flex-col items-center">
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
+                  isCompleted
+                    ? "bg-blue-600 text-white"
+                    : isActive
+                    ? "bg-blue-600 text-white ring-4 ring-blue-100"
+                    : "bg-gray-100 text-gray-400"
+                }`}
+              >
+                {isCompleted ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  step
+                )}
+              </div>
+              <span
+                className={`text-xs mt-1.5 font-medium whitespace-nowrap ${
+                  isActive ? "text-blue-600" : isCompleted ? "text-blue-400" : "text-gray-400"
+                }`}
+              >
+                {label}
+              </span>
+            </div>
+            {/* Connector line */}
+            {i < steps.length - 1 && (
+              <div
+                className={`w-16 h-0.5 mx-2 mb-5 rounded-full transition-all ${
+                  step < current ? "bg-blue-500" : "bg-gray-200"
+                }`}
+              />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Dynamic form field renderer ───────────────────────────
+function DynamicField({
+  field,
+  value,
+  onChange,
+}: {
+  field: FormField
+  value: string
+  onChange: (name: string, val: string) => void
+}) {
+  const base =
+    "w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-white"
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        {field.label}
+        {field.required && <span className="text-red-400 ml-1">*</span>}
+      </label>
+
+      {field.type === "SELECT" && field.options ? (
+        <select
+          value={value}
+          onChange={(e) => onChange(field.name, e.target.value)}
+          required={field.required}
+          className={base}
+        >
+          <option value="">Sélectionner…</option>
+          {field.options.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      ) : field.type === "TEXTAREA" ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(field.name, e.target.value)}
+          placeholder={field.placeholder ?? ""}
+          required={field.required}
+          rows={3}
+          className={`${base} resize-none`}
+        />
+      ) : field.type === "DATE" ? (
+        <input
+          type="date"
+          value={value}
+          onChange={(e) => onChange(field.name, e.target.value)}
+          required={field.required}
+          className={base}
+        />
+      ) : (
+        <input
+          type={field.type === "EMAIL" ? "email" : field.type === "PHONE" ? "tel" : "text"}
+          value={value}
+          onChange={(e) => onChange(field.name, e.target.value)}
+          placeholder={field.placeholder ?? ""}
+          required={field.required}
+          className={base}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── Main component ────────────────────────────────────────
 export default function NewApplicationContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
-  const [step, setStep] = useState(0)
+  const preselectedCountry = searchParams.get("country")
+
+  const [step, setStep] = useState(1)
   const [countries, setCountries] = useState<Country[]>([])
-  const [loading, setLoading] = useState(true)
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null)
+  const [selectedVisaType, setSelectedVisaType] = useState<VisaType | null>(null)
+  const [formTemplate, setFormTemplate] = useState<FormTemplate | null>(null)
+  const [formData, setFormData] = useState<Record<string, string>>({})
+  const [travelDate, setTravelDate] = useState("")
+  const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
 
-  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null)
-  const [selectedVisaType, setSelectedVisaType] = useState<VisaType | null>(null)
-  const [formData, setFormData] = useState<Record<string, string>>({})
-  const [files, setFiles] = useState<Record<string, File>>({})
-  const [referenceCode, setReferenceCode] = useState("")
-
+  // Load countries
   useEffect(() => {
-    fetch("/api/countries")
-      .then(r => r.json())
-      .then(data => {
+    fetch("/api/countries?includeVisaTypes=true")
+      .then((r) => r.json())
+      .then((data) => {
         if (data.success) {
           setCountries(data.data)
-          const countryCode = searchParams.get("country")
-          if (countryCode) {
-            const found = data.data.find((c: Country) => c.code === countryCode.toUpperCase())
-            if (found) {
-              setSelectedCountry(found)
-              if (found.visaTypes?.length === 1) setSelectedVisaType(found.visaTypes[0])
-            }
+          if (preselectedCountry) {
+            const found = data.data.find((c: Country) => c.code === preselectedCountry)
+            if (found) setSelectedCountry(found)
           }
         }
       })
+      .catch(console.error)
+  }, [preselectedCountry])
+
+  // Load form template when visa type selected
+  useEffect(() => {
+    if (!selectedVisaType) return
+    setLoading(true)
+    fetch(`/api/form-templates?visaTypeId=${selectedVisaType.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.data?.[0]) {
+          setFormTemplate(data.data[0])
+        }
+      })
+      .catch(console.error)
       .finally(() => setLoading(false))
-  }, [searchParams])
+  }, [selectedVisaType])
 
-  const infoFields = [
-    { key: "lastName",       label: "Nom de famille",           type: "text",  required: true,  placeholder: "BEN ALI" },
-    { key: "firstName",      label: "Prénom",                   type: "text",  required: true,  placeholder: "Mohamed" },
-    { key: "birthDate",      label: "Date de naissance",        type: "date",  required: true,  placeholder: "" },
-    { key: "birthPlace",     label: "Lieu de naissance",        type: "text",  required: true,  placeholder: "Tunis" },
-    { key: "nationality",    label: "Nationalité",              type: "text",  required: true,  placeholder: "Tunisienne" },
-    { key: "passportNumber", label: "N° de passeport",          type: "text",  required: true,  placeholder: "A1234567" },
-    { key: "passportExpiry", label: "Expiration passeport",     type: "date",  required: true,  placeholder: "" },
-    { key: "email",          label: "Email",                    type: "email", required: true,  placeholder: "email@exemple.com" },
-    { key: "phone",          label: "Téléphone",                type: "tel",   required: false, placeholder: "+216 XX XXX XXX" },
-    { key: "address",        label: "Adresse en Tunisie",       type: "text",  required: false, placeholder: "Rue, Ville" },
-    { key: "travelDate",     label: "Date de voyage prévue",    type: "date",  required: false, placeholder: "" },
-    { key: "travelPurpose",  label: "Motif du voyage",          type: "text",  required: false, placeholder: "Tourisme, Affaires..." },
-  ]
-
-  const requiredDocs = [
-    { key: "passport",      label: "Passeport (pages 1-5)",          required: true },
-    { key: "photo",         label: "Photo biométrique",               required: true },
-    { key: "bankStatement", label: "Relevé bancaire (3 mois)",        required: true },
-    { key: "hotelBooking",  label: "Réservation d'hôtel",             required: selectedCountry?.code !== "US" },
-    { key: "flightBooking", label: "Réservation de vol",              required: selectedCountry?.code !== "US" },
-    { key: "insurancePDF",  label: "Assurance voyage",                required: ["FR","IT","DE","ES"].includes(selectedCountry?.code ?? "") },
-  ]
+  function handleFieldChange(name: string, value: string) {
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
 
   async function handleSubmit() {
+    if (!selectedVisaType || !formTemplate) return
     setSubmitting(true)
     setError("")
     try {
@@ -95,374 +214,358 @@ export default function NewApplicationContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          visaTypeId: selectedVisaType?.id,
-          formTemplateId: selectedVisaType?.id,
+          visaTypeId: selectedVisaType.id,
+          formTemplateId: formTemplate.id,
           formData,
+          travelDate: travelDate || undefined,
         }),
       })
       const data = await res.json()
-      if (data.success) {
-        setReferenceCode(data.data.referenceCode)
-        setStep(4)
+      if (!res.ok) {
+        setError(data.error ?? "Erreur lors de la création du dossier")
       } else {
-        setError(data.error || "Erreur lors de la soumission")
+        router.push(`/dashboard/applications/${data.data.id}?created=1`)
       }
     } catch {
-      setError("Erreur réseau. Veuillez réessayer.")
+      setError("Une erreur est survenue. Réessayez.")
     } finally {
       setSubmitting(false)
     }
   }
 
-  /* ── Loading ─────────────────────────────────────────── */
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
-          <p className="text-slate-500 text-sm">Chargement des destinations...</p>
-        </div>
-      </div>
-    )
-  }
+  const STEPS = ["Destination", "Type de visa", "Formulaire", "Confirmation"]
 
-  /* ── Success ─────────────────────────────────────────── */
-  if (step === 4) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
-        <div className="relative max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-emerald-400/10 border border-emerald-400/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Check className="w-10 h-10 text-emerald-400" />
-          </div>
-          <h1 className="text-white text-3xl font-black tracking-tight mb-2">Dossier soumis !</h1>
-          <p className="text-slate-400 mb-8">Votre demande a été enregistrée avec succès.</p>
-
-          <div className="bg-amber-400/5 border border-amber-400/20 rounded-2xl p-6 mb-6">
-            <p className="text-slate-500 text-sm mb-2">Votre code de suivi</p>
-            <p className="text-amber-400 text-3xl font-mono font-black tracking-wider">{referenceCode}</p>
-            <p className="text-slate-600 text-xs mt-2">Conservez ce code pour suivre votre dossier à tout moment</p>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <Link
-              href={`/track?ref=${referenceCode}`}
-              className="bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold rounded-xl py-3.5 transition-all shadow-lg shadow-amber-500/20"
-            >
-              Suivre mon dossier →
-            </Link>
-            <Link
-              href="/"
-              className="border border-white/10 hover:border-white/20 text-slate-400 hover:text-white font-medium rounded-xl py-3 transition-all"
-            >
-              Retour à l&apos;accueil
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  /* ── Main ────────────────────────────────────────────── */
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-
-      {/* Header */}
-      <header className="border-b border-white/5 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Retour</span>
+    <div className="min-h-screen bg-gray-50">
+      {/* Top navbar */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
+        <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors text-sm font-medium">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Mes dossiers
           </Link>
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center">
-              <span className="text-slate-900 font-black text-xs">V</span>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-blue-600 flex items-center justify-center">
+              <span className="text-white font-black text-xs">V</span>
             </div>
-            <span className="text-white font-bold">Visa<span className="text-amber-400">TN</span></span>
-          </Link>
+            <span className="font-bold text-sm text-gray-900">Visa<span className="text-blue-600">TN</span></span>
+          </div>
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-
-        {/* Progress bar */}
-        <div className="mb-10">
-          <div className="flex items-center">
-            {STEPS.map((label, i) => (
-              <div key={i} className="flex items-center flex-1">
-                <div className="flex flex-col items-center">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${
-                    i < step  ? "bg-emerald-400/20 border border-emerald-400/40 text-emerald-400" :
-                    i === step ? "bg-amber-400 text-slate-900 shadow-lg shadow-amber-400/30" :
-                    "bg-white/5 border border-white/10 text-slate-600"
-                  }`}>
-                    {i < step ? <Check className="w-4 h-4" /> : i + 1}
-                  </div>
-                  <span className={`text-xs mt-1.5 hidden sm:block font-medium ${
-                    i === step ? "text-amber-400" : i < step ? "text-emerald-400" : "text-slate-600"
-                  }`}>
-                    {label}
-                  </span>
-                </div>
-                {i < STEPS.length - 1 && (
-                  <div className={`flex-1 h-px mx-2 transition-all ${i < step ? "bg-emerald-400/40" : "bg-white/8"}`} />
-                )}
-              </div>
-            ))}
-          </div>
+      <main className="max-w-2xl mx-auto px-6 py-10">
+        {/* Page title */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-extrabold text-gray-900 mb-1">Nouvelle demande de visa</h1>
+          <p className="text-gray-500 text-sm">Remplissez les informations ci-dessous pour créer votre dossier</p>
         </div>
 
-        {/* ── Step 0 — Pays & visa ───────────────────────── */}
-        {step === 0 && (
-          <div>
-            <h1 className="text-2xl font-black tracking-tight mb-1">Choisissez votre destination</h1>
-            <p className="text-slate-400 text-sm mb-8">Sélectionnez le pays et le type de visa souhaité</p>
+        {/* Step indicator */}
+        <StepIndicator current={step} steps={STEPS} />
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-              {countries.map(country => (
-                <button
-                  key={country.id}
-                  onClick={() => { setSelectedCountry(country); setSelectedVisaType(null) }}
-                  className={`group p-4 rounded-2xl border text-left transition-all hover:-translate-y-0.5 ${
-                    selectedCountry?.id === country.id
-                      ? "border-amber-400/50 bg-amber-400/8 shadow-lg shadow-amber-400/10"
-                      : "border-white/8 bg-white/3 hover:border-white/15 hover:bg-white/5"
-                  }`}
-                >
-                  <div className="text-3xl mb-2.5">{country.flagEmoji}</div>
-                  <div className="text-white font-semibold text-sm">{country.nameFr}</div>
-                  <div className="text-slate-600 text-xs mt-0.5">{country.visaTypes?.length} type(s)</div>
-                  {selectedCountry?.id === country.id && (
-                    <div className="mt-2 flex items-center gap-1 text-amber-400 text-xs font-semibold">
-                      <Check className="w-3 h-3" /> Sélectionné
-                    </div>
-                  )}
-                </button>
-              ))}
+        {/* ── Step 1: Choose country ── */}
+        {step === 1 && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h2 className="text-base font-semibold text-gray-900 mb-5">Choisissez votre destination</h2>
+
+            {countries.length === 0 ? (
+              <div className="flex items-center justify-center py-12 text-gray-400 text-sm gap-2">
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Chargement des destinations…
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {countries.map((c) => {
+                  const flags: Record<string, string> = { FR:"🇫🇷", IT:"🇮🇹", DE:"🇩🇪", ES:"🇪🇸", US:"🇺🇸", CA:"🇨🇦", GB:"🇬🇧", AE:"🇦🇪", TR:"🇹🇷" }
+                  const isSelected = selectedCountry?.id === c.id
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => setSelectedCountry(c)}
+                      className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
+                        isSelected
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-100 hover:border-blue-200 bg-white"
+                      }`}
+                    >
+                      <span className="text-3xl mb-2">{flags[c.code] ?? "🌍"}</span>
+                      <span className={`text-xs font-semibold ${isSelected ? "text-blue-700" : "text-gray-700"}`}>
+                        {c.nameFr}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setStep(2)}
+                disabled={!selectedCountry}
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold rounded-xl transition-colors text-sm"
+              >
+                Continuer →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 2: Choose visa type ── */}
+        {step === 2 && selectedCountry && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <button onClick={() => setStep(1)} className="text-gray-400 hover:text-gray-700 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <h2 className="text-base font-semibold text-gray-900">
+                Type de visa — {selectedCountry.nameFr}
+              </h2>
             </div>
 
-            {selectedCountry && selectedCountry.visaTypes?.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-white font-bold mb-3 text-base">Type de visa pour {selectedCountry.nameFr}</h2>
-                <div className="space-y-2">
-                  {selectedCountry.visaTypes.map(vt => (
+            {selectedCountry.visaTypes.length === 0 ? (
+              <p className="text-sm text-gray-500 py-6 text-center">
+                Aucun type de visa disponible pour cette destination.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {selectedCountry.visaTypes.map((vt) => {
+                  const isSelected = selectedVisaType?.id === vt.id
+                  return (
                     <button
                       key={vt.id}
                       onClick={() => setSelectedVisaType(vt)}
-                      className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between group ${
-                        selectedVisaType?.id === vt.id
-                          ? "border-teal-400/40 bg-teal-400/5"
-                          : "border-white/8 bg-white/3 hover:border-white/15"
+                      className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                        isSelected
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-100 hover:border-blue-200 bg-white"
                       }`}
                     >
-                      <div>
-                        <div className="text-white font-semibold text-sm">{vt.nameFr || vt.name}</div>
-                        <div className="text-slate-500 text-xs mt-0.5">
-                          Délai : {vt.processingDaysMin}–{vt.processingDaysMax} jours
-                          {vt.durationDays ? ` · Validité : ${vt.durationDays}j` : ""}
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className={`font-semibold text-sm ${isSelected ? "text-blue-700" : "text-gray-900"}`}>
+                            {vt.name}
+                          </p>
+                          {vt.description && (
+                            <p className="text-xs text-gray-500 mt-0.5">{vt.description}</p>
+                          )}
                         </div>
-                      </div>
-                      <div className="text-right ml-3">
-                        <div className={`font-bold text-sm ${selectedVisaType?.id === vt.id ? "text-teal-400" : "text-amber-400"}`}>
-                          {Number(vt.feeAgency)} TND
+                        <div className="text-right flex-shrink-0">
+                          {vt.fee && (
+                            <p className="text-sm font-bold text-gray-900">{vt.fee} €</p>
+                          )}
+                          {vt.processingDays && (
+                            <p className="text-xs text-gray-400">{vt.processingDays} jours</p>
+                          )}
                         </div>
-                        <div className="text-slate-600 text-xs">frais agence</div>
                       </div>
                     </button>
-                  ))}
-                </div>
+                  )
+                })}
               </div>
             )}
 
-            <button
-              onClick={() => setStep(1)}
-              disabled={!selectedCountry || !selectedVisaType}
-              className="w-full bg-amber-400 hover:bg-amber-300 disabled:opacity-30 disabled:cursor-not-allowed text-slate-900 font-bold rounded-xl py-4 flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-400/20 hover:-translate-y-0.5"
-            >
-              Continuer <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* ── Step 1 — Informations ─────────────────────── */}
-        {step === 1 && (
-          <div>
-            <h1 className="text-2xl font-black tracking-tight mb-1">Informations personnelles</h1>
-            <p className="text-slate-400 text-sm mb-8">
-              {selectedVisaType?.nameFr} — {selectedCountry?.nameFr} {selectedCountry?.flagEmoji}
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-              {infoFields.map(field => (
-                <div key={field.key} className={field.key === "address" || field.key === "travelPurpose" ? "sm:col-span-2" : ""}>
-                  <label className="block text-sm text-slate-300 mb-1.5 font-medium">
-                    {field.label}
-                    {field.required && <span className="text-amber-400 ml-1">*</span>}
-                  </label>
-                  <input
-                    type={field.type}
-                    required={field.required}
-                    value={formData[field.key] ?? ""}
-                    onChange={e => setFormData(f => ({ ...f, [field.key]: e.target.value }))}
-                    placeholder={field.placeholder}
-                    className="w-full bg-white/5 border border-white/8 text-white placeholder-slate-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/20 transition-all hover:border-white/15"
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep(0)}
-                className="flex-1 border border-white/10 text-slate-400 hover:text-white hover:border-white/20 rounded-xl py-3.5 font-medium transition-all flex items-center justify-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" /> Retour
-              </button>
-              <button
-                onClick={() => setStep(2)}
-                className="flex-[2] bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-400/20"
-              >
-                Continuer <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Step 2 — Documents ────────────────────────── */}
-        {step === 2 && (
-          <div>
-            <h1 className="text-2xl font-black tracking-tight mb-1">Documents requis</h1>
-            <p className="text-slate-400 text-sm mb-8">PDF ou JPEG — max 5 MB par fichier</p>
-
-            <div className="space-y-3 mb-6">
-              {requiredDocs.filter(d => d.required !== false).map(doc => (
-                <div key={doc.key} className="bg-white/3 border border-white/8 rounded-2xl p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-slate-500" />
-                      <span className="text-white text-sm font-medium">{doc.label}</span>
-                      {doc.required && <span className="text-amber-400 text-xs">*</span>}
-                    </div>
-                    {files[doc.key] && (
-                      <button
-                        onClick={() => setFiles(f => { const n = { ...f }; delete n[doc.key]; return n })}
-                        className="text-slate-600 hover:text-red-400 transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                  {files[doc.key] ? (
-                    <div className="bg-emerald-400/8 border border-emerald-400/20 rounded-xl px-3 py-2 flex items-center gap-2">
-                      <Check className="w-4 h-4 text-emerald-400" />
-                      <span className="text-emerald-300 text-sm truncate">{files[doc.key].name}</span>
-                    </div>
-                  ) : (
-                    <label className="block cursor-pointer">
-                      <div className="border-2 border-dashed border-white/8 hover:border-amber-400/30 hover:bg-amber-400/3 rounded-xl px-4 py-5 text-center transition-all">
-                        <Upload className="w-5 h-5 text-slate-600 mx-auto mb-1.5" />
-                        <p className="text-slate-500 text-xs">Cliquez pour uploader</p>
-                        <p className="text-slate-700 text-xs mt-0.5">PDF, JPG, PNG — max 5 MB</p>
-                      </div>
-                      <input
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        className="hidden"
-                        onChange={e => {
-                          const file = e.target.files?.[0]
-                          if (file) setFiles(f => ({ ...f, [doc.key]: file }))
-                        }}
-                      />
-                    </label>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-teal-400/5 border border-teal-400/15 rounded-2xl p-4 mb-6 flex gap-3">
-              <AlertCircle className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />
-              <p className="text-teal-300/80 text-sm">
-                Les documents peuvent aussi être envoyés après la soumission depuis votre espace client.
-              </p>
-            </div>
-
-            <div className="flex gap-3">
+            <div className="mt-6 flex justify-between">
               <button
                 onClick={() => setStep(1)}
-                className="flex-1 border border-white/10 text-slate-400 hover:text-white hover:border-white/20 rounded-xl py-3.5 font-medium transition-all flex items-center justify-center gap-2"
+                className="px-6 py-2.5 text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors"
               >
-                <ArrowLeft className="w-4 h-4" /> Retour
+                ← Retour
               </button>
               <button
                 onClick={() => setStep(3)}
-                className="flex-[2] bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-400/20"
+                disabled={!selectedVisaType}
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold rounded-xl transition-colors text-sm"
               >
-                Continuer <ArrowRight className="w-4 h-4" />
+                Continuer →
               </button>
             </div>
           </div>
         )}
 
-        {/* ── Step 3 — Confirmation ─────────────────────── */}
+        {/* ── Step 3: Fill form ── */}
         {step === 3 && (
-          <div>
-            <h1 className="text-2xl font-black tracking-tight mb-1">Confirmer votre demande</h1>
-            <p className="text-slate-400 text-sm mb-8">Vérifiez les informations avant de soumettre</p>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <button onClick={() => setStep(2)} className="text-gray-400 hover:text-gray-700 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <h2 className="text-base font-semibold text-gray-900">Informations du demandeur</h2>
+            </div>
 
-            {/* Résumé visa */}
-            <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-4">
-              <div className="flex items-center gap-4 pb-4 border-b border-white/5 mb-4">
-                <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0">
-                  {selectedCountry?.flagEmoji}
-                </div>
-                <div className="flex-1">
-                  <p className="text-white font-bold">{selectedVisaType?.nameFr}</p>
-                  <p className="text-slate-400 text-sm">{selectedCountry?.nameFr}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-amber-400 font-black text-lg">{selectedVisaType ? Number(selectedVisaType.feeAgency) : ""} TND</p>
-                  <p className="text-slate-600 text-xs">{selectedVisaType?.processingDaysMin}–{selectedVisaType?.processingDaysMax}j de traitement</p>
-                </div>
+            {loading ? (
+              <div className="flex items-center justify-center py-12 text-gray-400 text-sm gap-2">
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Chargement du formulaire…
               </div>
+            ) : formTemplate ? (
+              <div className="space-y-4">
+                {/* Travel date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Date de voyage prévue
+                    <span className="text-gray-400 font-normal ml-1">(optionnel)</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={travelDate}
+                    onChange={(e) => setTravelDate(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-white"
+                  />
+                </div>
 
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                {Object.entries(formData).slice(0, 6).map(([key, val]) => (
-                  <div key={key}>
-                    <p className="text-slate-600 text-xs capitalize mb-0.5">{key.replace(/([A-Z])/g, " $1").toLowerCase()}</p>
-                    <p className="text-slate-300 text-sm font-medium">{val || "—"}</p>
-                  </div>
+                {/* Dynamic fields */}
+                {formTemplate.fields.map((field) => (
+                  <DynamicField
+                    key={field.id}
+                    field={field}
+                    value={formData[field.name] ?? ""}
+                    onChange={handleFieldChange}
+                  />
                 ))}
               </div>
-            </div>
-
-            {/* Documents */}
-            <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-5">
-              <p className="text-slate-400 text-sm font-medium mb-3">
-                Documents ({Object.keys(files).length})
+            ) : (
+              <p className="text-sm text-gray-500 py-6 text-center">
+                Aucun formulaire disponible pour ce type de visa.
               </p>
-              {Object.keys(files).length === 0 ? (
-                <p className="text-slate-600 text-sm">Aucun — vous pourrez les ajouter depuis votre espace client</p>
-              ) : (
-                <div className="space-y-2">
-                  {Object.entries(files).map(([key, file]) => (
-                    <div key={key} className="flex items-center gap-2">
-                      <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                      <span className="text-slate-300 text-sm truncate">{file.name}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+            )}
+
+            <div className="mt-6 flex justify-between">
+              <button
+                onClick={() => setStep(2)}
+                className="px-6 py-2.5 text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors"
+              >
+                ← Retour
+              </button>
+              <button
+                onClick={() => setStep(4)}
+                disabled={!formTemplate}
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold rounded-xl transition-colors text-sm"
+              >
+                Continuer →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 4: Confirm & submit ── */}
+        {step === 4 && selectedCountry && selectedVisaType && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <button onClick={() => setStep(3)} className="text-gray-400 hover:text-gray-700 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <h2 className="text-base font-semibold text-gray-900">Confirmer votre dossier</h2>
             </div>
 
+            {/* Summary card */}
+            <div className="bg-gray-50 rounded-xl border border-gray-100 p-5 mb-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Destination</span>
+                <span className="text-sm font-semibold text-gray-900">{selectedCountry.nameFr}</span>
+              </div>
+              <div className="h-px bg-gray-100" />
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Type de visa</span>
+                <span className="text-sm font-semibold text-gray-900">{selectedVisaType.name}</span>
+              </div>
+              {selectedVisaType.fee && (
+                <>
+                  <div className="h-px bg-gray-100" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Frais consulaires</span>
+                    <span className="text-sm font-semibold text-gray-900">{selectedVisaType.fee} €</span>
+                  </div>
+                </>
+              )}
+              {selectedVisaType.processingDays && (
+                <>
+                  <div className="h-px bg-gray-100" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Délai de traitement</span>
+                    <span className="text-sm font-semibold text-gray-900">{selectedVisaType.processingDays} jours ouvrés</span>
+                  </div>
+                </>
+              )}
+              {travelDate && (
+                <>
+                  <div className="h-px bg-gray-100" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Date de voyage</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {new Date(travelDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                    </span>
+                  </div>
+                </>
+              )}
+              <div className="h-px bg-gray-100" />
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Champs remplis</span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {Object.values(formData).filter(Boolean).length} / {formTemplate?.fields.length ?? 0}
+                </span>
+              </div>
+            </div>
+
+            {/* Info box */}
+            <div className="flex gap-3 bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
+              <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm text-blue-700">
+                Votre dossier sera créé en statut <strong>Brouillon</strong>. Vous pourrez compléter et soumettre vos documents depuis votre tableau de bord.
+              </p>
+            </div>
+
+            {/* Error */}
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">
                 {error}
               </div>
             )}
+
+            {/* Actions */}
+            <div className="flex justify-between">
+              <button
+                onClick={() => setStep(3)}
+                className="px-6 py-2.5 text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors"
+              >
+                ← Retour
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-colors text-sm shadow-sm"
+              >
+                {submitting ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Création…
+                  </span>
+                ) : (
+                  "Créer mon dossier"
+                )}
+              </button>
+            </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 }
