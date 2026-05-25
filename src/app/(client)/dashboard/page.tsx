@@ -61,6 +61,10 @@ export default async function DashboardPage() {
   const session = await auth()
   if (!session?.user?.id) redirect("/login")
 
+  const isAdmin = (session.user as { isAdmin?: boolean })?.isAdmin
+  // Redirect admins to their dedicated panel
+  if (isAdmin) redirect("/admin/dashboard")
+
   const applications = await getApplications(session.user.id)
 
   const IN_PROGRESS_STATUSES = ["SUBMITTED", "DOCUMENTS_PENDING", "UNDER_REVIEW", "SENT_TO_EMBASSY", "AT_EMBASSY", "ADDITIONAL_INFO"]

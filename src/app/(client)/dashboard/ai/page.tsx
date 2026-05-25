@@ -8,6 +8,48 @@ interface Message {
   content: string
 }
 
+// Simple markdown → JSX renderer (no external deps)
+function MarkdownText({ text }: { text: string }) {
+  const lines = text.split("\n")
+  const elements: React.ReactNode[] = []
+
+  lines.forEach((line, i) => {
+    // H2
+    if (line.startsWith("## ")) {
+      elements.push(<p key={i} className="font-bold text-gray-900 mt-3 mb-1">{inline(line.slice(3))}</p>)
+    // H3
+    } else if (line.startsWith("### ")) {
+      elements.push(<p key={i} className="font-semibold text-gray-800 mt-2 mb-0.5">{inline(line.slice(4))}</p>)
+    // Bullet
+    } else if (line.startsWith("- ") || line.startsWith("* ")) {
+      elements.push(
+        <div key={i} className="flex gap-2 ml-2">
+          <span className="text-blue-400 mt-0.5 flex-shrink-0">•</span>
+          <span>{inline(line.slice(2))}</span>
+        </div>
+      )
+    // Empty line
+    } else if (line.trim() === "") {
+      elements.push(<div key={i} className="h-1" />)
+    // Normal
+    } else {
+      elements.push(<p key={i}>{inline(line)}</p>)
+    }
+  })
+
+  return <div className="space-y-0.5 text-sm leading-relaxed">{elements}</div>
+}
+
+function inline(text: string): React.ReactNode {
+  // Bold **text**
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part, i) =>
+    part.startsWith("**") && part.endsWith("**")
+      ? <strong key={i} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>
+      : part
+  )
+}
+
 export default function AiAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: "Bonjour ! Je suis votre assistant visa IA. Je peux répondre à toutes vos questions sur les procédures visa depuis la Tunisie : Schengen, USA, Canada, UK, eVisa... Comment puis-je vous aider ?" }
@@ -88,12 +130,14 @@ export default function AiAssistantPage() {
               {msg.role === "assistant" ? "🤖" : "Moi"}
             </div>
             {/* Bubble */}
-            <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+            <div className={`max-w-[80%] px-4 py-3 rounded-2xl ${
               msg.role === "assistant"
                 ? "bg-white border border-gray-100 shadow-sm text-gray-800 rounded-tl-sm"
-                : "bg-blue-600 text-white rounded-tr-sm"
+                : "bg-blue-600 text-white rounded-tr-sm text-sm leading-relaxed"
             }`}>
-              {msg.content}
+              {msg.role === "assistant"
+                ? <MarkdownText text={msg.content} />
+                : msg.content}
             </div>
           </div>
         ))}

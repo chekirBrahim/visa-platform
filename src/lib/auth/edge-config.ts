@@ -21,7 +21,7 @@ export const edgeAuthConfig: NextAuthConfig = {
       }
 
       // Routes client — doit être connecté
-      if (nextUrl.pathname.startsWith("/dashboard")) {
+      if (nextUrl.pathname.startsWith("/dashboard") || nextUrl.pathname.startsWith("/application")) {
         if (!isLoggedIn) return Response.redirect(new URL("/login", nextUrl))
         return true
       }

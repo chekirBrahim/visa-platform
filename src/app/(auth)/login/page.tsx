@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
@@ -26,7 +26,10 @@ export default function LoginPage() {
       if (res?.error) {
         setError("Email ou mot de passe incorrect")
       } else {
-        router.push("/dashboard")
+        // Fetch session to know if admin
+        const session = await fetch("/api/auth/session").then(r => r.json())
+        const isAdmin = session?.user?.isAdmin
+        router.push(isAdmin ? "/admin/dashboard" : "/dashboard")
       }
     } catch {
       setError("Une erreur est survenue. Réessayez.")
