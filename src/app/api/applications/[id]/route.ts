@@ -125,6 +125,3 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ success: false, error: "Erreur serveur" }, { status: 500 })
   }
 }
-uccess: false, error: "Erreur serveur" }, { status: 500 })
-  }
-}
