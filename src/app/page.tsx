@@ -1,240 +1,140 @@
-// ============================================================
-// Landing Page — VisaTN
-// Design premium inspiré Stripe / Revolut
-// ============================================================
-
 import Link from "next/link"
 
 const COUNTRIES = [
-  { code: "FR", flag: "🇫🇷", name: "France",       sub: "Schengen • TLSContact", color: "#003189", delay: "0ms"   },
-  { code: "IT", flag: "🇮🇹", name: "Italie",        sub: "Schengen • TLSContact", color: "#009246", delay: "60ms"  },
-  { code: "DE", flag: "🇩🇪", name: "Allemagne",     sub: "Schengen • TLSContact", color: "#DD0000", delay: "120ms" },
-  { code: "ES", flag: "🇪🇸", name: "Espagne",       sub: "Schengen • VFS Global", color: "#c60b1e", delay: "180ms" },
-  { code: "US", flag: "🇺🇸", name: "États-Unis",    sub: "Ambassade directe",     color: "#3C3B6E", delay: "240ms" },
-  { code: "CA", flag: "🇨🇦", name: "Canada",        sub: "En ligne • IRCC",       color: "#D80621", delay: "300ms" },
-  { code: "EVISA", flag: "🌐", name: "eVisa", sub: "Multi-destinations",    color: "#0066FF", delay: "360ms" },
+  { code: "FR", flag: "🇫🇷", name: "France",        sub: "Schengen · TLSContact",  color: "from-blue-600 to-blue-800" },
+  { code: "IT", flag: "🇮🇹", name: "Italie",         sub: "Schengen · TLSContact",  color: "from-green-600 to-green-800" },
+  { code: "DE", flag: "🇩🇪", name: "Allemagne",      sub: "Schengen · TLSContact",  color: "from-yellow-600 to-yellow-800" },
+  { code: "ES", flag: "🇪🇸", name: "Espagne",        sub: "Schengen · VFS Global",  color: "from-red-600 to-red-800" },
+  { code: "US", flag: "🇺🇸", name: "États-Unis",     sub: "Ambassade directe",      color: "from-indigo-600 to-indigo-800" },
+  { code: "CA", flag: "🇨🇦", name: "Canada",         sub: "En ligne · IRCC",        color: "from-red-700 to-red-900" },
+  { code: "GB", flag: "🇬🇧", name: "Royaume-Uni",    sub: "UK Visas",               color: "from-purple-600 to-purple-800" },
+  { code: "AE", flag: "🇦🇪", name: "Émirats",        sub: "eVisa rapide",           color: "from-amber-600 to-amber-800" },
 ]
 
 const STEPS = [
-  { n: "01", title: "Choisissez votre pays",     desc: "Sélectionnez la destination et le type de visa souhaité" },
-  { n: "02", title: "Remplissez le formulaire",  desc: "Formulaire guidé, adapté aux exigences de chaque ambassade" },
-  { n: "03", title: "Envoyez vos documents",     desc: "Upload sécurisé. Nos experts vérifient chaque pièce" },
-  { n: "04", title: "Suivez votre dossier",      desc: "Tableau de bord en temps réel + notifications WhatsApp/email" },
+  { n: "01", icon: "🗺️", title: "Choisissez votre pays",    desc: "Sélectionnez la destination et le type de visa souhaité" },
+  { n: "02", icon: "📋", title: "Remplissez le formulaire", desc: "Formulaire guidé, adapté aux exigences de chaque ambassade" },
+  { n: "03", icon: "📁", title: "Envoyez vos documents",    desc: "Upload sécurisé. Nos experts vérifient chaque pièce" },
+  { n: "04", icon: "📡", title: "Suivez en temps réel",     desc: "Tableau de bord + notifications email à chaque étape" },
 ]
 
 const STATS = [
-  { value: "98%",    label: "Taux d'approbation" },
-  { value: "5 000+", label: "Visas traités" },
-  { value: "7",      label: "Pays couverts" },
-  { value: "24h",    label: "Délai de vérification" },
+  { value: "98%",    label: "Taux d'approbation", icon: "✦" },
+  { value: "5 000+", label: "Visas traités",       icon: "✦" },
+  { value: "8",      label: "Pays couverts",       icon: "✦" },
+  { value: "24h",    label: "Délai de vérification", icon: "✦" },
 ]
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* ─── Navbar ─────────────────────────────────────────── */}
-      <header style={{
-        position: "sticky", top: 0, zIndex: 50,
-        background: "rgba(255,255,255,0.85)",
-        backdropFilter: "blur(12px)",
-        borderBottom: "1px solid var(--border)",
-      }}>
-        <nav style={{
-          maxWidth: 1200, margin: "0 auto",
-          padding: "0 24px",
-          height: 64,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: "var(--gradient-hero)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 18,
-            }}>🛂</div>
-            <span style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.5px" }}>
-              Visa<span style={{ color: "var(--primary)" }}>TN</span>
-            </span>
-          </div>
+    <div className="min-h-screen bg-slate-950 text-white">
 
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <Link href="/application/new" style={{
-              padding: "9px 20px",
-              borderRadius: 10,
-              background: "transparent",
-              color: "var(--text-secondary)",
-              fontWeight: 600,
-              fontSize: 14,
-              textDecoration: "none",
-              transition: "color 0.2s",
-            }}>
+      {/* ── Navbar ───────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
+        <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <span className="text-slate-900 font-black text-sm">V</span>
+            </div>
+            <span className="font-bold text-lg tracking-tight">
+              Visa<span className="text-amber-400">TN</span>
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-2">
+            <Link href="/track" className="hidden sm:block px-4 py-2 text-sm text-slate-400 hover:text-white font-medium transition-colors rounded-lg hover:bg-white/5">
               Suivi dossier
             </Link>
-            <Link href="/login" style={{
-              padding: "9px 20px",
-              borderRadius: 10,
-              background: "transparent",
-              color: "var(--text-primary)",
-              fontWeight: 600,
-              fontSize: 14,
-              textDecoration: "none",
-              border: "1.5px solid var(--border)",
-            }}>
+            <Link href="/login" className="px-4 py-2 text-sm text-slate-300 hover:text-white font-medium border border-white/10 rounded-lg hover:border-white/20 transition-all">
               Connexion
             </Link>
-            <Link href="/application/new" className="btn-primary" style={{ fontSize: 14, padding: "9px 20px" }}>
+            <Link href="/application/new" className="px-4 py-2 text-sm font-semibold bg-amber-400 hover:bg-amber-300 text-slate-900 rounded-lg transition-all shadow-lg shadow-amber-500/20">
               Commencer →
             </Link>
           </div>
         </nav>
       </header>
 
-      {/* ─── Hero ───────────────────────────────────────────── */}
-      <section style={{
-        background: "linear-gradient(160deg, #F0F6FF 0%, #FFFFFF 50%, #F5F0FF 100%)",
-        padding: "96px 24px 80px",
-        textAlign: "center",
-        position: "relative",
-        overflow: "hidden",
-      }}>
-        {/* Background decoration */}
-        <div style={{
-          position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)",
-          width: 600, height: 600, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(0,102,255,0.06) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }} />
+      {/* ── Hero ─────────────────────────────────────────── */}
+      <section className="relative overflow-hidden px-6 pt-24 pb-20 text-center">
+        {/* Glow blobs */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-amber-500/8 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-20 left-1/4 w-64 h-64 bg-teal-500/6 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-20 right-1/4 w-64 h-64 bg-indigo-500/6 rounded-full blur-3xl pointer-events-none" />
 
-        <div style={{ maxWidth: 720, margin: "0 auto", position: "relative" }} className="animate-fade-in">
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            background: "var(--primary-light)",
-            color: "var(--primary)",
-            borderRadius: 20, padding: "6px 16px",
-            fontSize: 13, fontWeight: 600,
-            marginBottom: 24,
-          }}>
-            <span>✦</span> Agence certifiée — Tunis, Tunisie
+        <div className="relative max-w-4xl mx-auto">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/20 text-amber-400 rounded-full px-4 py-1.5 text-sm font-medium mb-8">
+            <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+            Agence certifiée — Tunis, Tunisie
           </div>
 
-          <h1 style={{
-            fontSize: "clamp(36px, 6vw, 64px)",
-            fontWeight: 800,
-            lineHeight: 1.1,
-            letterSpacing: "-2px",
-            marginBottom: 20,
-          }}>
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] mb-6">
             Votre visa,{" "}
-            <span className="gradient-text">traité par des experts</span>
+            <span className="relative">
+              <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-teal-400 bg-clip-text text-transparent">
+                traité par des experts
+              </span>
+            </span>
           </h1>
 
-          <p style={{
-            fontSize: 18,
-            color: "var(--text-secondary)",
-            lineHeight: 1.7,
-            marginBottom: 40,
-            maxWidth: 560,
-            margin: "0 auto 40px",
-          }}>
+          <p className="text-slate-400 text-lg sm:text-xl leading-relaxed max-w-2xl mx-auto mb-10">
             Déposez votre dossier en ligne en quelques minutes.
-            Nos experts s&apos;occupent de tout — de TLSContact à l&apos;ambassade.
+            Nos conseillers s&apos;occupent de tout — de TLSContact à l&apos;ambassade.
           </p>
 
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/application/new" className="btn-primary" style={{ fontSize: 16, padding: "14px 32px" }}>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link href="/application/new" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold rounded-xl text-base transition-all shadow-xl shadow-amber-500/25 hover:shadow-amber-400/30 hover:-translate-y-0.5">
               Démarrer une demande
+              <span className="text-xl">→</span>
             </Link>
-            <Link href="/track" style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              padding: "14px 28px",
-              borderRadius: 10,
-              border: "1.5px solid var(--border)",
-              color: "var(--text-primary)",
-              fontWeight: 600,
-              fontSize: 16,
-              textDecoration: "none",
-              background: "white",
-              transition: "box-shadow 0.2s",
-            }}>
+            <Link href="/track" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white font-semibold rounded-xl text-base transition-all">
               🔍 Suivre mon dossier
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ─── Stats ──────────────────────────────────────────── */}
-      <section style={{
-        background: "var(--primary)",
-        padding: "32px 24px",
-      }}>
-        <div style={{
-          maxWidth: 900, margin: "0 auto",
-          display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0,
-        }}>
+      {/* ── Stats ────────────────────────────────────────── */}
+      <section className="px-6 py-12">
+        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4">
           {STATS.map((s, i) => (
-            <div key={i} style={{
-              textAlign: "center",
-              padding: "8px 0",
-              borderRight: i < 3 ? "1px solid rgba(255,255,255,0.15)" : "none",
-            }}>
-              <div style={{ fontSize: 32, fontWeight: 800, color: "white", letterSpacing: "-1px" }}>{s.value}</div>
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>{s.label}</div>
+            <div key={i} className="bg-white/5 border border-white/8 rounded-2xl p-5 text-center backdrop-blur-sm hover:border-amber-400/20 transition-all group">
+              <div className="text-3xl font-black text-amber-400 group-hover:scale-105 transition-transform">{s.value}</div>
+              <div className="text-slate-500 text-xs mt-1.5 font-medium">{s.label}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ─── Pays ───────────────────────────────────────────── */}
-      <section style={{ padding: "80px 24px", background: "var(--background)" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 52 }}>
-            <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-1px", marginBottom: 12 }}>
-              Choisissez votre destination
+      {/* ── Pays ─────────────────────────────────────────── */}
+      <section className="px-6 py-16">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3">
+              Choisissez votre{" "}
+              <span className="text-teal-400">destination</span>
             </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: 16 }}>
-              Formulaire dédié, documents adaptés, et suivi personnalisé pour chaque pays
-            </p>
+            <p className="text-slate-400 text-base">Formulaire dédié et suivi personnalisé pour chaque pays</p>
           </div>
 
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 16,
-          }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {COUNTRIES.map((c) => (
               <Link
                 key={c.code}
                 href={`/application/new?country=${c.code}`}
-                className="card card-hover animate-fade-in"
-                style={{
-                  padding: "28px 24px",
-                  textDecoration: "none",
-                  color: "inherit",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                  animationDelay: c.delay,
-                  position: "relative",
-                  overflow: "hidden",
-                }}
+                className="group relative bg-white/5 border border-white/8 hover:border-white/20 rounded-2xl p-5 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-black/30 overflow-hidden"
               >
-                <div style={{
-                  position: "absolute", top: 0, left: 0, right: 0,
-                  height: 3,
-                  background: c.color,
-                  borderRadius: "16px 16px 0 0",
-                }} />
-                <span style={{ fontSize: 44 }}>{c.flag}</span>
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 700 }}>{c.name}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>{c.sub}</div>
-                </div>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  fontSize: 13, fontWeight: 600, color: "var(--primary)",
-                  marginTop: "auto",
-                }}>
-                  Démarrer →
+                {/* Gradient shine on hover */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${c.color} opacity-0 group-hover:opacity-5 transition-opacity rounded-2xl`} />
+
+                <div className="relative">
+                  <span className="text-4xl block mb-3">{c.flag}</span>
+                  <div className="font-bold text-white text-base mb-0.5">{c.name}</div>
+                  <div className="text-slate-500 text-xs mb-4">{c.sub}</div>
+                  <div className="text-amber-400 text-xs font-semibold group-hover:gap-2 flex items-center gap-1 transition-all">
+                    Démarrer <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
+                  </div>
                 </div>
               </Link>
             ))}
@@ -242,89 +142,66 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── Comment ça marche ──────────────────────────────── */}
-      <section style={{ padding: "80px 24px", background: "var(--surface-2)" }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 52 }}>
-            <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-1px", marginBottom: 12 }}>
-              Simple comme bonjour
+      {/* ── Comment ça marche ────────────────────────────── */}
+      <section className="px-6 py-16 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-teal-500/3 to-transparent pointer-events-none" />
+        <div className="max-w-5xl mx-auto relative">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3">
+              Simple comme{" "}
+              <span className="text-teal-400">bonjour</span>
             </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: 16 }}>
-              Pas besoin de créer un compte pour commencer
-            </p>
+            <p className="text-slate-400">Pas besoin de créer un compte pour commencer</p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 24 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {STEPS.map((s, i) => (
-              <div key={i} style={{ position: "relative" }}>
+              <div key={i} className="relative bg-white/5 border border-white/8 rounded-2xl p-6 hover:border-teal-400/20 transition-all group">
+                {/* Connector line */}
                 {i < STEPS.length - 1 && (
-                  <div style={{
-                    position: "absolute", top: 28, left: "calc(50% + 32px)",
-                    right: "-12px", height: 2,
-                    background: "var(--border)",
-                    display: "none", // visible only on desktop via CSS
-                  }} />
+                  <div className="hidden lg:block absolute top-10 -right-2.5 w-5 h-px bg-white/10 z-10" />
                 )}
-                <div className="card" style={{ padding: 28, textAlign: "center" }}>
-                  <div style={{
-                    width: 56, height: 56, borderRadius: 16,
-                    background: "var(--primary-light)",
-                    color: "var(--primary)",
-                    fontWeight: 800, fontSize: 20,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    margin: "0 auto 16px",
-                  }}>
-                    {s.n}
-                  </div>
-                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 8 }}>{s.title}</div>
-                  <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>{s.desc}</div>
+                <div className="w-10 h-10 rounded-xl bg-teal-400/10 border border-teal-400/20 flex items-center justify-center text-lg mb-4 group-hover:bg-teal-400/15 transition-colors">
+                  {s.icon}
                 </div>
+                <div className="text-xs text-teal-400 font-bold mb-1.5 tracking-wider">{s.n}</div>
+                <div className="font-bold text-white text-sm mb-2">{s.title}</div>
+                <div className="text-slate-500 text-xs leading-relaxed">{s.desc}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ─── CTA Final ──────────────────────────────────────── */}
-      <section style={{
-        padding: "80px 24px",
-        background: "var(--gradient-hero)",
-        textAlign: "center",
-      }}>
-        <div style={{ maxWidth: 600, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 36, fontWeight: 800, color: "white", letterSpacing: "-1px", marginBottom: 16 }}>
-            Prêt à obtenir votre visa ?
-          </h2>
-          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 16, marginBottom: 32 }}>
-            Commencez sans créer de compte. Accédez à votre dossier avec juste votre email ou téléphone.
-          </p>
-          <Link href="/application/new" style={{
-            display: "inline-flex", alignItems: "center", gap: 10,
-            background: "white", color: "var(--primary)",
-            padding: "16px 36px", borderRadius: 12,
-            fontWeight: 700, fontSize: 16,
-            textDecoration: "none",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
-            transition: "transform 0.2s, box-shadow 0.2s",
-          }}>
-            Commencer ma demande →
-          </Link>
+      {/* ── CTA Final ────────────────────────────────────── */}
+      <section className="px-6 py-20">
+        <div className="max-w-2xl mx-auto text-center relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-teal-500/10 to-amber-500/10 rounded-3xl blur-2xl" />
+          <div className="relative bg-white/5 border border-white/10 rounded-3xl p-12">
+            <div className="text-4xl mb-4">🛂</div>
+            <h2 className="text-3xl font-black tracking-tight mb-3">
+              Prêt à obtenir votre visa ?
+            </h2>
+            <p className="text-slate-400 mb-8">
+              Commencez sans créer de compte. Accédez à votre dossier avec juste votre email.
+            </p>
+            <Link href="/application/new" className="inline-flex items-center gap-2 px-8 py-4 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold rounded-xl text-base transition-all shadow-xl shadow-amber-500/20 hover:-translate-y-0.5">
+              Commencer ma demande →
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* ─── Footer ─────────────────────────────────────────── */}
-      <footer style={{
-        background: "var(--text-primary)",
-        color: "rgba(255,255,255,0.5)",
-        padding: "32px 24px",
-        textAlign: "center",
-        fontSize: 13,
-      }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ color: "white", fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
-            Visa<span style={{ color: "var(--primary)" }}>TN</span>
+      {/* ── Footer ───────────────────────────────────────── */}
+      <footer className="border-t border-white/5 px-6 py-8 text-center">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <div className="w-6 h-6 rounded-md bg-amber-400 flex items-center justify-center">
+              <span className="text-slate-900 font-black text-xs">V</span>
+            </div>
+            <span className="font-bold">Visa<span className="text-amber-400">TN</span></span>
           </div>
-          <p>© {new Date().getFullYear()} VisaTN — Tous droits réservés · Tunis, Tunisie</p>
+          <p className="text-slate-600 text-sm">© {new Date().getFullYear()} VisaTN — Tous droits réservés · Tunis, Tunisie</p>
         </div>
       </footer>
     </div>

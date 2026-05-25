@@ -91,7 +91,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center p-4 py-12">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-400/8 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl" />
       </div>
 
@@ -129,7 +129,7 @@ export default function RegisterPage() {
                   value={form.fullName}
                   onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))}
                   placeholder="Mohamed Ben Ali"
-                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30 transition-all"
                 />
               </div>
             </div>
@@ -144,7 +144,7 @@ export default function RegisterPage() {
                   value={form.email}
                   onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                   placeholder="votre@email.com"
-                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30 transition-all"
                 />
               </div>
             </div>
@@ -159,7 +159,7 @@ export default function RegisterPage() {
                   value={form.phone}
                   onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                   placeholder="+216 XX XXX XXX"
-                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30 transition-all"
                 />
               </div>
             </div>
@@ -172,7 +172,7 @@ export default function RegisterPage() {
                 <select
                   value={form.nationality}
                   onChange={e => setForm(f => ({ ...f, nationality: e.target.value }))}
-                  className="w-full bg-slate-900 border border-white/10 text-white rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all appearance-none"
+                  className="w-full bg-slate-900 border border-white/10 text-white rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30 transition-all appearance-none"
                 >
                   {NATIONALITIES.map(n => (
                     <option key={n.code} value={n.code}>{n.name}</option>
@@ -192,7 +192,7 @@ export default function RegisterPage() {
                   value={form.password}
                   onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                   placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl pl-10 pr-11 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl pl-10 pr-11 py-3 text-sm focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/30 transition-all"
                 />
                 <button
                   type="button"
@@ -231,7 +231,7 @@ export default function RegisterPage() {
                   className={`w-full bg-white/5 border text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-1 transition-all ${
                     form.confirmPassword && form.password !== form.confirmPassword
                       ? "border-red-500/50 focus:border-red-500 focus:ring-red-500"
-                      : "border-white/10 focus:border-blue-500 focus:ring-blue-500"
+                      : "border-white/10 focus:border-amber-400/50 focus:ring-amber-400/30"
                   }`}
                 />
               </div>
@@ -240,7 +240,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl py-3 flex items-center justify-center gap-2 transition-all duration-200 mt-2"
+              className="w-full bg-amber-400 hover:bg-amber-300 disabled:opacity-60 disabled:cursor-not-allowed text-slate-900 font-bold rounded-xl py-3 flex items-center justify-center gap-2 transition-all duration-200 mt-2"
             >
               {loading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Création...</>
@@ -252,7 +252,7 @@ export default function RegisterPage() {
 
           <p className="text-center text-slate-400 text-sm mt-5">
             Déjà un compte ?{" "}
-            <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+            <Link href="/login" className="text-amber-400 hover:text-amber-300 font-medium transition-colors">
               Se connecter
             </Link>
           </p>
