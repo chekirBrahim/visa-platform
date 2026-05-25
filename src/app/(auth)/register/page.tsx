@@ -80,7 +80,7 @@ export default function RegisterPage() {
 
         <div className="relative">
           <h2 className="text-3xl font-extrabold text-white leading-snug mb-4">
-            Démarrez votre<br />démarche visa aujourd'hui.
+            Démarrez votre<br />démarche visa aujourd&apos;hui.
           </h2>
           <p className="text-blue-100 text-base leading-relaxed mb-10">
             Créez votre compte en 2 minutes et déposez votre premier dossier immédiatement. Nos experts prennent en charge le reste.
@@ -262,7 +262,7 @@ export default function RegisterPage() {
           </p>
 
           <p className="mt-4 text-center text-xs text-gray-400">
-            En créant un compte, vous acceptez nos conditions d'utilisation et notre politique de confidentialité.
+            En créant un compte, vous acceptez nos conditions d&apos;utilisation et notre politique de confidentialité.
           </p>
         </div>
       </div>

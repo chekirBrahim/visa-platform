@@ -132,7 +132,7 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Simple, rapide, efficace</h2>
             <p className="text-gray-500 text-lg max-w-xl mx-auto">
-              4 étapes suffisent pour confier votre dossier à nos experts et voyager l'esprit libre.
+              4 étapes suffisent pour confier votre dossier à nos experts et voyager l&apos;esprit libre.
             </p>
           </div>
 
@@ -194,7 +194,7 @@ export default function HomePage() {
           <div className="text-center mb-16">
             <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Pourquoi choisir VisaTN ?</h2>
             <p className="text-gray-500 text-lg max-w-xl mx-auto">
-              Expertise humaine et technologie pour maximiser vos chances d'obtenir votre visa.
+              Expertise humaine et technologie pour maximiser vos chances d&apos;obtenir votre visa.
             </p>
           </div>
 

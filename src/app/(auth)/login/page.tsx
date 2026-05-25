@@ -58,7 +58,7 @@ export default function LoginPage() {
             Votre dossier visa,<br />suivi de A à Z.
           </h2>
           <p className="text-blue-100 text-base leading-relaxed mb-10">
-            Déposez vos documents, suivez chaque étape en temps réel, et laissez nos experts maximiser vos chances d'obtention.
+            Déposez vos documents, suivez chaque étape en temps réel, et laissez nos experts maximiser vos chances d&apos;obtention.
           </p>
 
           {/* Social proof */}
