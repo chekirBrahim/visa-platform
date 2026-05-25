@@ -80,7 +80,7 @@ export default function HomePage() {
       </header>
 
       {/* ── Hero ─────────────────────────────────────────── */}
-      <section className="relative overflow-hidden px-6 pt-20 pb-24">
+      <section className="relative overflow-hidden px-6 pt-24 pb-28">
         <div className="absolute inset-0 bg-gradient-to-b from-blue-50/60 to-white pointer-events-none" />
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/3" />
 
@@ -90,7 +90,7 @@ export default function HomePage() {
             Agence certifiée — Tunis, Tunisie
           </div>
 
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] text-gray-900 mb-6">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] text-gray-900 mb-6">
             Votre visa,{" "}
             <span className="text-blue-600">traité par des experts</span>
           </h1>
@@ -99,7 +99,7 @@ export default function HomePage() {
             Déposez votre dossier en ligne, suivez chaque étape en temps réel et obtenez votre visa en toute sérénité — depuis la Tunisie.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
             <Link
               href="/register"
               className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-200 text-base"
