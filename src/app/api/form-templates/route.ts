@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db/client"
+import { Prisma } from "@prisma/client"
 
 const DEFAULT_FIELDS = [
   { fieldKey: "full_name",       labelFr: "Nom complet",              fieldType: "TEXT",     isRequired: true,  sortOrder: 1 },
@@ -59,8 +60,8 @@ export async function GET(req: NextRequest) {
               isRequired: f.isRequired,
               sortOrder: f.sortOrder,
               options: (f as { options?: string[] }).options
-                ? JSON.stringify((f as { options: string[] }).options)
-                : null,
+                ? (f as { options: string[] }).options as unknown as Prisma.InputJsonValue
+                : Prisma.JsonNull,
             })),
           },
         },
