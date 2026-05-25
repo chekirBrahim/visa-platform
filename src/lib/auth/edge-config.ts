@@ -35,5 +35,5 @@ export const edgeAuthConfig: NextAuthConfig = {
       return true
     },
   },
-  providers: [], // Aucun provider ici — edge runtime seulement
+  providers: [],
 }

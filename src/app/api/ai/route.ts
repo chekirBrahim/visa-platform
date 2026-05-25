@@ -137,3 +137,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Erreur du service IA" }, { status: 500 })
   }
 }
+xtResponse.json({ success: false, error: "Erreur serveur" }, { status: 500 })
+  }
+}
+  }
+}

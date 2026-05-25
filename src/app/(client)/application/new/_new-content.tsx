@@ -460,29 +460,6 @@ export default function NewApplicationContent() {
                 {error}
               </div>
             )}
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep(2)}
-                className="flex-1 border border-white/10 text-slate-400 hover:text-white hover:border-white/20 rounded-xl py-3.5 font-medium transition-all flex items-center justify-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" /> Retour
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="flex-[2] bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-slate-900 font-bold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-400/20"
-              >
-                {submitting
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Envoi en cours...</>
-                  : <><Check className="w-4 h-4" /> Soumettre ma demande</>
-                }
-              </button>
-            </div>
-
-            <p className="text-center text-slate-700 text-xs mt-4">
-              En soumettant, vous acceptez nos conditions générales de service
-            </p>
           </div>
         )}
       </div>
