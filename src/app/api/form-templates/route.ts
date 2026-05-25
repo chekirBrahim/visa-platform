@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 
     // Auto-create default template if none exists
     if (!template) {
-      template = await prisma.formTemplate.create({
+      const created = await prisma.formTemplate.create({
         data: {
           visaTypeId,
           isPublished: true,
@@ -64,6 +64,9 @@ export async function GET(req: NextRequest) {
             })),
           },
         },
+      })
+      template = await prisma.formTemplate.findUnique({
+        where: { id: created.id },
         include: { fields: { orderBy: { sortOrder: "asc" } } },
       })
     }
